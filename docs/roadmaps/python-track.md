@@ -35,7 +35,7 @@ Your step-by-step path from writing your first line of Python to shipping a full
 <div class="rm-head" markdown><span class="rm-icon" markdown>:material-cube-outline:</span><div><span class="rm-phase">Phase 2 · Programming Foundations</span><span class="rm-title">OOP &amp; Advanced Python</span></div></div>
 <p class="rm-desc">Model real-world things with classes and write robust code that handles errors and files.</p>
 <div class="rm-tags"><span>Classes &amp; objects</span><span>Inheritance</span><span>Exceptions</span><span>File handling</span><span>Decorators</span><span>JSON</span></div>
-<span class="rm-status">Coming soon</span>
+<a class="rm-status rm-live" href="../../python/oop/">Start learning →</a>
 </div>
 </div>
 <div class="rm-step" id="step-3" style="--c:#0d9488" markdown>

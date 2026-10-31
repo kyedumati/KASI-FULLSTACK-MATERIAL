@@ -409,4 +409,4 @@ Then add the `.gitignore` above before your first commit.
 | Install dependencies | `pip install -r requirements.txt` |
 | Git | Commit `requirements.txt`; ignore `.venv/` and `.env` |
 
-🎉 **You've completed the Functions & Modules module!** Next up: **OOP & Advanced Python**, covering classes, objects, exceptions and file handling.
+🎉 **You've completed the Functions & Modules module!** Next up: [**OOP & Advanced Python**](../oop/index.md), covering classes, objects, exceptions and file handling.

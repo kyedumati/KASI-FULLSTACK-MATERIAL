@@ -101,6 +101,9 @@ markdown_extensions:
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
 
+not_in_nav: |
+  /roadmaps/index.md
+
 nav:
   - Home: index.md
   - Getting Started:
@@ -108,7 +111,6 @@ nav:
       - How to Use This Material: getting-started/how-to-use.md
       - Lesson Template: getting-started/lesson-template.md
   - Roadmaps:
-      - roadmaps/index.md
       - Full Stack Java: roadmaps/java-track.md
       - Full Stack Python: roadmaps/python-track.md
   - Frontend: frontend/index.md
@@ -137,6 +139,14 @@ nav:
           - List Comprehensions: python/functions/04-list-comprehensions.md
           - Modules & Packages: python/functions/05-modules-and-packages.md
           - Virtual Environments & pip: python/functions/06-virtual-environments-and-pip.md
+      - OOP & Advanced Python:
+          - python/oop/index.md
+          - Classes & Objects: python/oop/01-classes-and-objects.md
+          - Inheritance & Polymorphism: python/oop/02-inheritance-and-polymorphism.md
+          - Exception Handling: python/oop/03-exception-handling.md
+          - File Handling: python/oop/04-file-handling.md
+          - Decorators & Generators: python/oop/05-decorators-and-generators.md
+          - Working with JSON & APIs: python/oop/06-working-with-json-and-apis.md
   - Database: database/index.md
   - Generative AI: genai/index.md
   - Projects: projects/index.md

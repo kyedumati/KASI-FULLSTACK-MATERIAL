@@ -33,14 +33,14 @@ Learn Python from your very first line of code to building real applications. To
     1. [Modules & Packages](functions/05-modules-and-packages.md)
     1. [Virtual Environments & pip](functions/06-virtual-environments-and-pip.md)
 
--   OOP & Advanced Python
+-   [OOP & Advanced Python](oop/index.md)
 
-    1. Classes & Objects <span class="ksr-soon">Soon</span>
-    1. Inheritance & Polymorphism <span class="ksr-soon">Soon</span>
-    1. Exception Handling <span class="ksr-soon">Soon</span>
-    1. File Handling <span class="ksr-soon">Soon</span>
-    1. Decorators & Generators <span class="ksr-soon">Soon</span>
-    1. Working with JSON & APIs <span class="ksr-soon">Soon</span>
+    1. [Classes & Objects](oop/01-classes-and-objects.md)
+    1. [Inheritance & Polymorphism](oop/02-inheritance-and-polymorphism.md)
+    1. [Exception Handling](oop/03-exception-handling.md)
+    1. [File Handling](oop/04-file-handling.md)
+    1. [Decorators & Generators](oop/05-decorators-and-generators.md)
+    1. [Working with JSON & APIs](oop/06-working-with-json-and-apis.md)
 
 -   Web Frameworks
 
