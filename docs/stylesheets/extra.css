@@ -108,6 +108,27 @@
 /* ---------- Sidebar navigation ---------- */
 .md-nav__link { border-radius: 8px; transition: color .15s; }
 .md-nav__item--section > .md-nav__link { font-weight: 700; text-transform: uppercase; font-size: .62rem; letter-spacing: .08em; opacity: .7; }
+
+/* Module headings in the left nav (collapsible): bold, dark, separated */
+@media screen and (min-width: 76.25em) {
+  .md-nav--primary .md-nav[data-md-level="1"] > .md-nav__list > .md-nav__item--nested {
+    margin-top: .5rem;
+    padding-top: .5rem;
+    border-top: 1px solid var(--ksr-border);
+  }
+  .md-nav--primary .md-nav[data-md-level="1"] > .md-nav__list > .md-nav__item--nested > .md-nav__link {
+    font-weight: 800;
+    font-size: .72rem;
+    color: var(--md-default-fg-color);
+    letter-spacing: .01em;
+  }
+  .md-nav--primary .md-nav[data-md-level="1"] > .md-nav__list > .md-nav__item--nested.md-nav__item--active > .md-nav__link {
+    color: var(--md-primary-fg-color);
+  }
+  .md-nav--primary .md-nav[data-md-level="1"] > .md-nav__list > .md-nav__item--nested > .md-nav__link .md-nav__icon {
+    color: var(--md-default-fg-color--light);
+  }
+}
 .md-nav--secondary .md-nav__title { font-weight: 700; }
 
 /* ---------- Code: dark blocks with a language label ---------- */
@@ -281,6 +302,10 @@
 .md-typeset .grid.cards > ul > li > hr { margin: .6rem 0; border-color: var(--ksr-border); }
 .md-typeset .grid.cards .lg { font-size: 2.2em; vertical-align: middle; margin-right: .2em; }
 .md-typeset .grid.cards .lg svg { fill: var(--md-primary-fg-color); }
+/* official language logos on the home cards */
+.md-typeset .grid.cards img.ksr-logo { width: 2.3em; height: 2.3em; vertical-align: middle; margin-right: .35em; }
+.md-typeset .grid.cards .lg.ksr-icon-ai svg { fill: #7c3aed; }
+.md-typeset .grid.cards .lg.ksr-icon-projects svg { fill: #2f8a68; }
 .md-typeset .grid.cards p:first-child strong { font-size: 1.05rem; }
 
 /* ---------- Home page hero ---------- */
@@ -517,6 +542,8 @@
   opacity: .5;
 }
 .rm-step {
+  /* steps overlap on wide screens; only the node and card should catch clicks */
+  pointer-events: none;
   position: relative;
   display: grid;
   grid-template-columns: 1fr 4rem 1fr;
@@ -524,6 +551,7 @@
   margin-bottom: 1.4rem;
   scroll-margin-top: 7rem;
 }
+.rm-node, .rm-card { pointer-events: auto; }
 .rm-node {
   grid-column: 2;
   grid-row: 1;
