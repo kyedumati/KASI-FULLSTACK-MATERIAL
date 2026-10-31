@@ -1,0 +1,97 @@
+site_name: KSR Full Stack Training
+site_description: Full Stack Java & Python training material for beginners and career switchers
+site_url: https://kyedumati.github.io/KSR-FULLSTACK-MATERIAL/
+repo_url: https://github.com/kyedumati/KSR-FULLSTACK-MATERIAL
+repo_name: KSR-FULLSTACK-MATERIAL
+edit_uri: ""
+copyright: Copyright &copy; 2026 KSR Trainings
+
+theme:
+  name: material
+  language: en
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  icon:
+    logo: material/school
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - navigation.instant
+    - navigation.tracking
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - toc.follow
+
+extra_css:
+  - stylesheets/extra.css
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - getting-started/index.md
+      - How to Use This Material: getting-started/how-to-use.md
+      - Lesson Template: getting-started/lesson-template.md
+  - Roadmaps:
+      - roadmaps/index.md
+      - Full Stack Java: roadmaps/java-track.md
+      - Full Stack Python: roadmaps/python-track.md
+  - Frontend: frontend/index.md
+  - Java: java/index.md
+  - Python: python/index.md
+  - Database: database/index.md
+  - Generative AI: genai/index.md
+  - Projects: projects/index.md
+  - Interview Prep: interview/index.md
