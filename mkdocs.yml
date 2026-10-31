@@ -8,6 +8,7 @@ copyright: Copyright &copy; 2026 KSR Trainings
 
 theme:
   name: material
+  custom_dir: overrides
   language: en
   font:
     text: Inter
@@ -33,6 +34,7 @@ theme:
     - announce.dismiss
     - navigation.tabs
     - navigation.tabs.sticky
+    - navigation.path
     - navigation.sections
     - navigation.indexes
     - navigation.top
@@ -46,6 +48,7 @@ theme:
     - content.tabs.link
     - content.tooltips
     - toc.follow
+    - toc.integrate
 
 extra:
   social:
@@ -55,6 +58,9 @@ extra:
 
 extra_css:
   - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/ksr.js
 
 plugins:
   - search
@@ -69,6 +75,7 @@ markdown_extensions:
   - abbr
   - toc:
       permalink: true
+      toc_depth: 2
   - pymdownx.details
   - pymdownx.highlight:
       anchor_linenums: true
@@ -106,7 +113,11 @@ nav:
       - Full Stack Python: roadmaps/python-track.md
   - Frontend: frontend/index.md
   - Java: java/index.md
-  - Python: python/index.md
+  - Python:
+      - python/index.md
+      - Python Foundation:
+          - python/foundation/index.md
+          - Introduction to Python: python/foundation/01-introduction-to-python.md
   - Database: database/index.md
   - Generative AI: genai/index.md
   - Projects: projects/index.md

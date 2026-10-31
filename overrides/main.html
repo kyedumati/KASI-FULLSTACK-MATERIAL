@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+  {% if page.meta and page.meta.lesson %}
+    <div class="ksr-lesson" data-short="{{ page.meta.short or page.title }}" data-category="{{ page.meta.category or '' }}">
+      {{ super() }}
+    </div>
+  {% else %}
+    {{ super() }}
+  {% endif %}
+{% endblock %}
