@@ -1,6 +1,6 @@
 # KSR Full Stack Training Material
 
-Student-facing material for **Full Stack Java** and **Full Stack Python**, published at
+Student-facing material for **Full Stack Python** and **Full Stack Java**, published at
 **https://kyedumati.github.io/KSR-FULLSTACK-MATERIAL/**
 
 Built with [MkDocs Material](https://squidfunk.github.io/mkdocs-material/). Every push to `main` deploys automatically via GitHub Actions.

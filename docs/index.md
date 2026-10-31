@@ -10,10 +10,10 @@ hide:
 
 # From zero to job-ready full stack developer
 
-Step-by-step material for **Full Stack Java** and **Full Stack Python**, written for students learning from scratch and career switchers. Plain English, real-life analogies, runnable code and real interview questions.
+Step-by-step material for **Full Stack Python** and **Full Stack Java**, written for students learning from scratch and career switchers. Plain English, real-life analogies, runnable code and real interview questions.
 
-[Start the Java track :material-arrow-right:](roadmaps/java-track.md){ .md-button }
-[Start the Python track :material-arrow-right:](roadmaps/python-track.md){ .md-button .md-button--secondary }
+[Start the Python track :material-arrow-right:](roadmaps/python-track.md){ .md-button }
+[Start the Java track :material-arrow-right:](roadmaps/java-track.md){ .md-button .md-button--secondary }
 
 <div class="ksr-stats" markdown>
 <div><strong>2</strong><span>Career tracks</span></div>
@@ -28,14 +28,6 @@ Step-by-step material for **Full Stack Java** and **Full Stack Python**, written
 
 <div class="grid cards" markdown>
 
--   :material-language-java:{ .lg } **Full Stack Java**
-
-    ---
-
-    Core Java → MySQL → JDBC → Hibernate → Spring → Spring Boot → React → Spring AI
-
-    [:octicons-arrow-right-24: Java roadmap](roadmaps/java-track.md)
-
 -   :material-language-python:{ .lg } **Full Stack Python**
 
     ---
@@ -43,6 +35,14 @@ Step-by-step material for **Full Stack Java** and **Full Stack Python**, written
     Python → MySQL → FastAPI → Django → React → Generative AI
 
     [:octicons-arrow-right-24: Python roadmap](roadmaps/python-track.md)
+
+-   :material-language-java:{ .lg } **Full Stack Java**
+
+    ---
+
+    Core Java → MySQL → JDBC → Hibernate → Spring → Spring Boot → React → Spring AI
+
+    [:octicons-arrow-right-24: Java roadmap](roadmaps/java-track.md)
 
 -   :material-web:{ .lg } **Frontend**
 

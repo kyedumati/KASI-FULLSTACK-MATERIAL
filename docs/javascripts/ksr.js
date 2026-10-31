@@ -18,7 +18,7 @@ document$.subscribe(() => {
     block.prepend(label);
   });
 
-  // Lesson pages: category badge above the title, numbered pill and "x of N" above each section
+  // Lesson pages: category badge above the title and a number badge inside each section heading
   const lesson = document.querySelector(".ksr-lesson");
   if (!lesson) return;
 
@@ -32,14 +32,11 @@ document$.subscribe(() => {
 
   const sections = lesson.querySelectorAll(":scope > h2");
   sections.forEach((h2, i) => {
-    if (h2.previousElementSibling?.classList.contains("ksr-sec")) return;
-    const title = [...h2.childNodes].filter((n) => !n.classList?.contains("headerlink")).map((n) => n.textContent).join("").trim();
-    const num = String(i + 1).padStart(2, "0");
-    const row = document.createElement("div");
-    row.className = "ksr-sec";
-    row.innerHTML = `<span class="ksr-pill"></span><span class="ksr-count"></span>`;
-    row.firstChild.textContent = `${num} · ${title}`;
-    row.lastChild.textContent = `${lesson.dataset.short} · ${i + 1} of ${sections.length}`;
-    h2.before(row);
+    if (h2.querySelector(".ksr-num")) return;
+    const num = document.createElement("span");
+    num.className = "ksr-num";
+    num.textContent = String(i + 1).padStart(2, "0");
+    num.title = `Section ${i + 1} of ${sections.length}`;
+    h2.prepend(num);
   });
 });
