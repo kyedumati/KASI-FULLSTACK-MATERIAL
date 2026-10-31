@@ -28,3 +28,13 @@ Every lesson page follows this structure. Trainers: copy it when you write a new
 ## Interview Questions
 ## Quick Revision Cheat Sheet
 ```
+
+## Callout boxes to use
+
+| Box | Syntax | Use for |
+|-----|--------|---------|
+| Common Mistake | `!!! mistake "Common Mistake"` | Beginner errors and fixes |
+| In Real Projects | `!!! realworld "In Real Projects"` | Industry usage |
+| Interview Question | `!!! interview "Interview Question"` | Interview Q&A |
+| Tip | `!!! tip` | Shortcuts and good habits |
+| Hidden solution | `??? success "Solution"` | Exercise answers |

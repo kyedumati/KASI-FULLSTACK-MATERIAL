@@ -1,7 +1,7 @@
 # Full Stack Java Roadmap
 
 ```mermaid
-flowchart LR
+flowchart TD
   A[Core Java] --> B[JDBC] --> C[MySQL] --> D[Hibernate]
   D --> E[Spring Basics] --> F[Spring Boot] --> G[Spring AI]
   H[HTML / CSS / JS] --> I[React]

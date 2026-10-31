@@ -1,7 +1,7 @@
 # Full Stack Python Roadmap
 
 ```mermaid
-flowchart LR
+flowchart TD
   A[Python] --> B[MySQL] --> C[Django] --> D[FastAPI] --> E[Generative AI]
   H[HTML / CSS / JS] --> I[React]
   D --> J[Capstone Project]

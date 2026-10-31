@@ -8,8 +8,17 @@
 
 ## Reading tips
 
-!!! warning "Common Mistake"
+!!! mistake "Common Mistake"
     Boxes like this show mistakes beginners make and how to fix them.
+
+!!! realworld "In Real Projects"
+    Boxes like this show how companies use the concept in production.
+
+!!! interview "Interview Question"
+    Boxes like this show questions asked in real interviews.
+
+!!! tip "Tip"
+    Shortcuts and good habits.
 
 ??? success "Solution (click to expand)"
     Solutions stay hidden until you click.
