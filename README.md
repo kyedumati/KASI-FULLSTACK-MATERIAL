@@ -1,7 +1,7 @@
 # Kasi Yedumati · Full Stack Training
 
 Student-facing material for **Full Stack Python** and **Full Stack Java**, published at
-**https://kyedumati.github.io/KSR-FULLSTACK-MATERIAL/**
+**https://kyedumati.github.io/KASI-FULLSTACK-TRAINING/**
 
 Built with [MkDocs Material](https://squidfunk.github.io/mkdocs-material/). Every push to `main` deploys automatically via GitHub Actions.
 
