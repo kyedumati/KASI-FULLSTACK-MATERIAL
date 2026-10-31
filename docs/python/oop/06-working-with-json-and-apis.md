@@ -576,4 +576,4 @@ Use `https://jsonplaceholder.typicode.com` for all exercises.
 | Auth | Headers like `Authorization: Bearer <token>`; keys in environment variables |
 | Robustness | Timeouts, status checks, catch `requests.exceptions.*` |
 
-🎉 **You've completed the OOP & Advanced Python module!** Next on the roadmap: **MySQL**, storing your application's data in a real database. After that you'll build your own APIs with **FastAPI**.
+🎉 **You've completed the OOP & Advanced Python module!** Next on the roadmap: [**MySQL**](../../database/index.md), storing your application's data in a real database. After that you'll build your own APIs with **FastAPI**.

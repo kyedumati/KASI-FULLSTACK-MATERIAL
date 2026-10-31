@@ -147,7 +147,23 @@ nav:
           - File Handling: python/oop/04-file-handling.md
           - Decorators & Generators: python/oop/05-decorators-and-generators.md
           - Working with JSON & APIs: python/oop/06-working-with-json-and-apis.md
-  - Database: database/index.md
+  - Database:
+      - database/index.md
+      - MySQL:
+          - Introduction to Databases: database/mysql/01-introduction-to-databases.md
+          - MySQL Setup & First Database: database/mysql/02-mysql-setup.md
+          - Creating Tables & Data Types: database/mysql/03-creating-tables.md
+          - CRUD Operations: database/mysql/04-crud-operations.md
+          - Filtering, Sorting & Pagination: database/mysql/05-filtering-sorting.md
+          - Aggregations & GROUP BY: database/mysql/06-aggregations-group-by.md
+          - Functions & Expressions: database/mysql/07-functions-expressions.md
+          - Database Design: database/mysql/08-database-design.md
+          - Joins: database/mysql/09-joins.md
+          - Subqueries, Views & CTEs: database/mysql/10-subqueries-views-ctes.md
+          - Window Functions: database/mysql/11-window-functions.md
+          - Transactions, Indexes & Users: database/mysql/12-transactions-indexes-users.md
+          - Python + MySQL: database/mysql/13-python-mysql.md
+          - Real-Time Projects: database/mysql/14-real-time-projects.md
   - Generative AI: genai/index.md
   - Projects: projects/index.md
   - Interview Prep: interview/index.md

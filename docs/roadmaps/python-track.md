@@ -44,7 +44,7 @@ Your step-by-step path from writing your first line of Python to shipping a full
 <div class="rm-head" markdown><span class="rm-icon" markdown>:material-database:</span><div><span class="rm-phase">Phase 3 · Data</span><span class="rm-title">MySQL</span></div></div>
 <p class="rm-desc">Store and query data the way every real application does.</p>
 <div class="rm-tags"><span>Tables &amp; keys</span><span>CRUD</span><span>Joins</span><span>Group by</span><span>Indexes</span><span>Transactions</span></div>
-<span class="rm-status">Coming soon</span>
+<a class="rm-status rm-live" href="../../database/">Start learning →</a>
 </div>
 </div>
 <div class="rm-step" id="step-4" style="--c:#2f8a68" markdown>
