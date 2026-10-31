@@ -90,7 +90,7 @@ The principle is called **DRY**: **D**on't **R**epeat **Y**ourself.
 
 ```python
 def greet():
-    print("Welcome to KSR Trainings!")
+    print("Welcome to Kasi Yedumati · Full Stack Training!")
     print("Let's learn Python.")
 
 greet()
@@ -98,9 +98,9 @@ greet()
 ```
 
 ```{ .text .output }
-Welcome to KSR Trainings!
+Welcome to Kasi Yedumati · Full Stack Training!
 Let's learn Python.
-Welcome to KSR Trainings!
+Welcome to Kasi Yedumati · Full Stack Training!
 Let's learn Python.
 ```
 
@@ -292,7 +292,7 @@ VS Code shows the docstring when you hover over the function name, and `help(cal
 - A variable created **outside** all functions is **global**: it can be read anywhere.
 
 ```python
-company = "KSR Trainings"          # global
+company = "Kasi Yedumati Training"   # global
 
 def show_details():
     course = "Full Stack Python"   # local
@@ -303,7 +303,7 @@ print(course)
 ```
 
 ```{ .text .output }
-KSR Trainings - Full Stack Python
+Kasi Yedumati Training - Full Stack Python
 NameError: name 'course' is not defined
 ```
 

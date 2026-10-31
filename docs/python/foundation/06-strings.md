@@ -341,7 +341,7 @@ True
 **Easy**
 
 1. Given `s = "Programming"`, print the first character, last character and the length.
-2. Print `"KSR Trainings"` in upper case, lower case and reversed.
+2. Print `"Kasi Yedumati"` in upper case, lower case and reversed.
 3. Count how many times `"a"` appears in `"banana"`.
 
 **Medium**
@@ -362,8 +362,8 @@ True
     print(s[0], s[-1], len(s))            # P g 11
 
     # 2
-    t = "KSR Trainings"
-    print(t.upper(), t.lower(), t[::-1])  # KSR TRAININGS ksr trainings sgniniarT RSK
+    t = "Kasi Yedumati"
+    print(t.upper(), t.lower(), t[::-1])  # KASI YEDUMATI kasi yedumati itamudeY isaK
 
     # 3
     print("banana".count("a"))            # 3

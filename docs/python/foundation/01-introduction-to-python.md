@@ -64,7 +64,7 @@ Compare the same program in Java and Python:
 === "Python"
 
     ```python
-    print("Welcome to KSR Trainings")
+    print("Welcome to Kasi Yedumati · Full Stack Training")
     ```
 
 === "Java"
@@ -72,7 +72,7 @@ Compare the same program in Java and Python:
     ```java
     public class Main {
         public static void main(String[] args) {
-            System.out.println("Welcome to KSR Trainings");
+            System.out.println("Welcome to Kasi Yedumati · Full Stack Training");
         }
     }
     ```
@@ -156,7 +156,7 @@ Then install the editor:
 # My first Python program
 print("Hello, World!")
 print("My name is Ravi")
-print("I am learning Python at KSR Trainings")
+print("I am learning Python with Kasi Yedumati")
 ```
 
 **Step 4.** Save the file (++ctrl+s++ on Windows, ++cmd+s++ on macOS).
@@ -170,7 +170,7 @@ python hello.py
 ```{ .text .output }
 Hello, World!
 My name is Ravi
-I am learning Python at KSR Trainings
+I am learning Python with Kasi Yedumati
 ```
 
 **What each part means**
@@ -361,7 +361,7 @@ Use **4 spaces** per level. VS Code inserts them automatically when you press ++
 
     # 7
     print("==============================")
-    print("  KSR TRAININGS - STUDENT ID")
+    print("  KASI YEDUMATI - STUDENT ID")
     print("==============================")
     print("  Name   : Ravi Kumar")
     print("  Course : Full Stack Python")

@@ -223,7 +223,7 @@ Withdrew ₹1500. Balance: ₹5500
 
 ```python
 class Student:
-    institute = "KSR Trainings"       # class attribute (shared)
+    institute = "Kasi Yedumati Training"   # class attribute (shared)
     count = 0
 
     def __init__(self, name):
@@ -238,7 +238,7 @@ print("Students created:", Student.count)
 ```
 
 ```{ .text .output }
-KSR Trainings | KSR Trainings
+Kasi Yedumati Training | Kasi Yedumati Training
 Students created: 2
 ```
 
@@ -403,7 +403,7 @@ The balance can be read, but it can only change through `deposit()`, which enfor
 **Medium**
 
 4. Create a class `Rectangle` with `length` and `width` and methods `area()`, `perimeter()` and `is_square()`.
-5. Create a class `Employee` with a class attribute `company = "KSR Tech"` and a class attribute that counts how many employees were created.
+5. Create a class `Employee` with a class attribute `company = "Acme Tech"` and a class attribute that counts how many employees were created.
 6. Add a `@classmethod` `from_string("Ravi-Developer-75000")` to `Employee` that creates an object from a dash-separated string.
 
 **Challenge**
@@ -452,7 +452,7 @@ The balance can be read, but it can only change through `deposit()`, which enfor
 
     # 5, 6
     class Employee:
-        company = "KSR Tech"
+        company = "Acme Tech"
         count = 0
 
         def __init__(self, name, role, salary):
@@ -469,7 +469,7 @@ The balance can be read, but it can only change through `deposit()`, which enfor
     e1 = Employee("Asha", "Tester", 50000)
     e2 = Employee.from_string("Ravi-Developer-75000")
     print(e2.name, e2.role, e2.salary, Employee.company, Employee.count)
-    # Ravi Developer 75000 KSR Tech 2
+    # Ravi Developer 75000 Acme Tech 2
 
     # 7
     class ShoppingCart:

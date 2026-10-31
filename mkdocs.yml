@@ -1,10 +1,10 @@
-site_name: KSR Full Stack Training
+site_name: Kasi Yedumati · Full Stack Training
 site_description: Full Stack Python & Java training material for beginners and career switchers
 site_url: https://kyedumati.github.io/KSR-FULLSTACK-MATERIAL/
 repo_url: https://github.com/kyedumati/KSR-FULLSTACK-MATERIAL
 repo_name: KSR-FULLSTACK-MATERIAL
 edit_uri: ""
-copyright: Copyright &copy; 2026 KSR Trainings
+copyright: Copyright &copy; 2026 Kasi Yedumati · Full Stack Training
 
 theme:
   name: material

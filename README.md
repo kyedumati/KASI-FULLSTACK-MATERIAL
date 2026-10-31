@@ -1,4 +1,4 @@
-# KSR Full Stack Training Material
+# Kasi Yedumati · Full Stack Training
 
 Student-facing material for **Full Stack Python** and **Full Stack Java**, published at
 **https://kyedumati.github.io/KSR-FULLSTACK-MATERIAL/**

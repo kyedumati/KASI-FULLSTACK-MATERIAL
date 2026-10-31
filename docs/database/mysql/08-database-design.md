@@ -430,7 +430,7 @@ Normalised designs are correct and easy to update, but some read-heavy queries n
     ```
 
 !!! note "Mini Assignment"
-    Design the database for **your own capstone idea** (or the KSR Academy portal: trainers, courses, batches, students, enrolments, payments, attendance). Deliver: an ER diagram, the `CREATE TABLE` script with all constraints, a short note on which normal form each table is in, and one place where you'd deliberately denormalise and why.
+    Design the database for **your own capstone idea** (or a training institute portal: trainers, courses, batches, students, enrolments, payments, attendance). Deliver: an ER diagram, the `CREATE TABLE` script with all constraints, a short note on which normal form each table is in, and one place where you'd deliberately denormalise and why.
 
 ## Interview Questions
 

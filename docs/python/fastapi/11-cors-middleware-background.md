@@ -69,7 +69,7 @@ app = FastAPI(title="KSR Shop API")
 # ---- CORS: which browser origins may call this API ----
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "https://shop.ksrtrainings.in"],
+    allow_origins=["http://localhost:5173", "https://shop.example.com"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
@@ -149,7 +149,7 @@ def demo_page():
 ```{ .python .no-run }
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "https://shop.ksrtrainings.in"],
+    allow_origins=["http://localhost:5173", "https://shop.example.com"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
