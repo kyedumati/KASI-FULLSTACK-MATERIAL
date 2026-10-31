@@ -302,10 +302,21 @@
 .md-typeset .grid.cards > ul > li > hr { margin: .6rem 0; border-color: var(--ksr-border); }
 .md-typeset .grid.cards .lg { font-size: 2.2em; vertical-align: middle; margin-right: .2em; }
 .md-typeset .grid.cards .lg svg { fill: var(--md-primary-fg-color); }
-/* official language logos on the home cards */
-.md-typeset .grid.cards img.ksr-logo { width: 2.3em; height: 2.3em; vertical-align: middle; margin-right: .35em; }
-.md-typeset .grid.cards .lg.ksr-icon-ai svg { fill: #7c3aed; }
-.md-typeset .grid.cards .lg.ksr-icon-projects svg { fill: #2f8a68; }
+/* official language logos and icon tiles on the home cards (same size as the old icons) */
+.md-typeset .grid.cards img.ksr-logo { width: 34px; height: 34px; vertical-align: middle; margin-right: .35em; }
+.md-typeset .grid.cards .twemoji.ksr-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  vertical-align: middle;
+  margin-right: .35em;
+}
+.md-typeset .grid.cards .twemoji.ksr-tile svg { width: 20px; height: 20px; max-height: none; fill: #fff; }
+.md-typeset .grid.cards .ksr-tile-ai { background: linear-gradient(135deg, #7c3aed, #db2777); }
+.md-typeset .grid.cards .ksr-tile-projects { background: linear-gradient(135deg, #059669, #0284c7); }
 .md-typeset .grid.cards p:first-child strong { font-size: 1.05rem; }
 
 /* ---------- Home page hero ---------- */

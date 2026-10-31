@@ -56,10 +56,10 @@ extra:
       name: Source on GitHub
 
 extra_css:
-  - stylesheets/extra.css
+  - stylesheets/extra.css?v=20261031b
 
 extra_javascript:
-  - javascripts/ksr.js
+  - javascripts/ksr.js?v=20261031b
 
 plugins:
   - search

@@ -28,7 +28,7 @@ Step-by-step material for **Full Stack Python** and **Full Stack Java**, written
 
 <div class="grid cards" markdown>
 
--   <img class="ksr-logo" src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/python/python-original.svg" alt="Python logo"> **Full Stack Python**
+-   <img class="ksr-logo" width="34" height="34" src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/python/python-original.svg" alt="Python logo"> **Full Stack Python**
 
     ---
 
@@ -36,7 +36,7 @@ Step-by-step material for **Full Stack Python** and **Full Stack Java**, written
 
     [:octicons-arrow-right-24: Python roadmap](roadmaps/python-track.md)
 
--   <img class="ksr-logo" src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/java/java-original.svg" alt="Java logo"> **Full Stack Java**
+-   <img class="ksr-logo" width="34" height="34" src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/java/java-original.svg" alt="Java logo"> **Full Stack Java**
 
     ---
 
@@ -44,7 +44,7 @@ Step-by-step material for **Full Stack Python** and **Full Stack Java**, written
 
     [:octicons-arrow-right-24: Java roadmap](roadmaps/java-track.md)
 
--   <img class="ksr-logo" src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/html5/html5-original.svg" alt="HTML5 logo"> **Frontend**
+-   <img class="ksr-logo" width="34" height="34" src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/html5/html5-original.svg" alt="HTML5 logo"> **Frontend**
 
     ---
 
@@ -52,7 +52,7 @@ Step-by-step material for **Full Stack Python** and **Full Stack Java**, written
 
     [:octicons-arrow-right-24: Frontend](frontend/index.md)
 
--   <img class="ksr-logo" src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/mysql/mysql-original.svg" alt="MySQL logo"> **Database**
+-   <img class="ksr-logo" width="34" height="34" src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/mysql/mysql-original.svg" alt="MySQL logo"> **Database**
 
     ---
 
@@ -60,7 +60,7 @@ Step-by-step material for **Full Stack Python** and **Full Stack Java**, written
 
     [:octicons-arrow-right-24: Database](database/index.md)
 
--   :material-robot-outline:{ .lg .ksr-icon-ai } **Generative AI**
+-   :material-creation:{ .ksr-tile .ksr-tile-ai } **Generative AI**
 
     ---
 
@@ -68,7 +68,7 @@ Step-by-step material for **Full Stack Python** and **Full Stack Java**, written
 
     [:octicons-arrow-right-24: Generative AI](genai/index.md)
 
--   :material-briefcase-check-outline:{ .lg .ksr-icon-projects } **Projects & Interviews**
+-   :material-rocket-launch:{ .ksr-tile .ksr-tile-projects } **Projects & Interviews**
 
     ---
 
