@@ -145,6 +145,20 @@ nav:
           - File Handling: python/oop/04-file-handling.md
           - Decorators & Generators: python/oop/05-decorators-and-generators.md
           - Working with JSON & APIs: python/oop/06-working-with-json-and-apis.md
+      - FastAPI:
+          - python/fastapi/index.md
+          - Introduction to FastAPI: python/fastapi/01-introduction-to-fastapi.md
+          - Path & Query Parameters: python/fastapi/02-path-and-query-parameters.md
+          - Request Bodies & Pydantic: python/fastapi/03-request-bodies-and-pydantic.md
+          - Responses, Status Codes & Errors: python/fastapi/04-responses-and-errors.md
+          - Routers & Project Structure: python/fastapi/05-routers-and-project-structure.md
+          - SQLAlchemy & MySQL: python/fastapi/06-sqlalchemy-and-mysql.md
+          - Database CRUD & Transactions: python/fastapi/07-database-crud.md
+          - Dependency Injection & Settings: python/fastapi/08-dependencies-and-settings.md
+          - Authentication with JWT: python/fastapi/09-authentication-jwt.md
+          - Testing FastAPI: python/fastapi/10-testing-fastapi.md
+          - CORS, Middleware & Background Tasks: python/fastapi/11-cors-middleware-background.md
+          - Deployment & Capstone Project: python/fastapi/12-deployment-and-capstone.md
   - Java: java/index.md
   - Frontend: frontend/index.md
   - Database:

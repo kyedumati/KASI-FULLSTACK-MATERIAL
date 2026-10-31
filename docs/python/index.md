@@ -42,10 +42,23 @@ Learn Python from your very first line of code to building real applications. To
     1. [Decorators & Generators](oop/05-decorators-and-generators.md)
     1. [Working with JSON & APIs](oop/06-working-with-json-and-apis.md)
 
--   Web Frameworks
+-   [FastAPI](fastapi/index.md)
 
-    1. FastAPI Fundamentals <span class="ksr-soon">Soon</span>
-    1. FastAPI with MySQL <span class="ksr-soon">Soon</span>
+    1. [Introduction to FastAPI](fastapi/01-introduction-to-fastapi.md)
+    1. [Path & Query Parameters](fastapi/02-path-and-query-parameters.md)
+    1. [Request Bodies & Pydantic](fastapi/03-request-bodies-and-pydantic.md)
+    1. [Responses, Status Codes & Errors](fastapi/04-responses-and-errors.md)
+    1. [Routers & Project Structure](fastapi/05-routers-and-project-structure.md)
+    1. [SQLAlchemy & MySQL](fastapi/06-sqlalchemy-and-mysql.md)
+    1. [Database CRUD & Transactions](fastapi/07-database-crud.md)
+    1. [Dependency Injection & Settings](fastapi/08-dependencies-and-settings.md)
+    1. [Authentication with JWT](fastapi/09-authentication-jwt.md)
+    1. [Testing FastAPI](fastapi/10-testing-fastapi.md)
+    1. [CORS, Middleware & Background Tasks](fastapi/11-cors-middleware-background.md)
+    1. [Deployment & Capstone Project](fastapi/12-deployment-and-capstone.md)
+
+-   Django
+
     1. Django Fundamentals <span class="ksr-soon">Soon</span>
     1. Django Models & ORM <span class="ksr-soon">Soon</span>
     1. Django REST Framework <span class="ksr-soon">Soon</span>

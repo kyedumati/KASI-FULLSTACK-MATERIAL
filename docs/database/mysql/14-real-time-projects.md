@@ -1084,4 +1084,4 @@ Use this checklist for every project, including your own capstone:
 | Hospital | `UNIQUE` scheduling constraint, `GROUP_CONCAT`, `CASE` age groups, `NOT EXISTS` |
 | Banking | Transactions, deriving balances, running totals, integrity checks |
 
-🎉 **You've completed the MySQL module!** Python track: next up is **FastAPI**, where you'll build APIs on top of these databases. Java track: next up is **JDBC**.
+🎉 **You've completed the MySQL module!** Python track: next up is [**FastAPI**](../../python/fastapi/index.md), where you'll build APIs on top of these databases. Java track: next up is **JDBC**.
