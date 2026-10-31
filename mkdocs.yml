@@ -51,6 +51,12 @@ theme:
 
 extra:
   social:
+    - icon: material/email-outline
+      link: mailto:support@datavizon.com
+      name: support@datavizon.com
+    - icon: material/phone-outline
+      link: tel:+919916961234
+      name: +91 99169 61234
     - icon: fontawesome/brands/github
       link: https://github.com/kyedumati/KSR-FULLSTACK-MATERIAL
       name: Source on GitHub

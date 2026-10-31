@@ -94,3 +94,25 @@ Common mistakes, exact error messages and how to fix them.</div>
 
 Exercises, a mini assignment and interview questions.</div>
 </div>
+
+## Admissions & support { .ksr-section-title }
+
+<div class="grid cards" markdown>
+
+-   :material-email-outline:{ .lg } **Email**
+
+    ---
+
+    Questions about batches, fees or the material?
+
+    [:octicons-arrow-right-24: support@datavizon.com](mailto:support@datavizon.com)
+
+-   :material-phone-outline:{ .lg } **Phone**
+
+    ---
+
+    Talk to the KSR team directly.
+
+    [:octicons-arrow-right-24: +91 99169 61234](tel:+919916961234)
+
+</div>
