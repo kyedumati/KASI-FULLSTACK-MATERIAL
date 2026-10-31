@@ -118,6 +118,17 @@ nav:
       - Python Foundation:
           - python/foundation/index.md
           - Introduction to Python: python/foundation/01-introduction-to-python.md
+          - Variables in Python: python/foundation/02-variables.md
+          - Data Types in Python: python/foundation/03-data-types.md
+          - Operators in Python: python/foundation/04-operators.md
+          - Input, Output & Type Conversion: python/foundation/05-input-output-type-conversion.md
+          - Strings in Python: python/foundation/06-strings.md
+          - Conditional Statements: python/foundation/07-conditional-statements.md
+          - Loops in Python: python/foundation/08-loops.md
+          - Lists in Python: python/foundation/09-lists.md
+          - Tuples in Python: python/foundation/10-tuples.md
+          - Sets in Python: python/foundation/11-sets.md
+          - Dictionaries in Python: python/foundation/12-dictionaries.md
   - Database: database/index.md
   - Generative AI: genai/index.md
   - Projects: projects/index.md

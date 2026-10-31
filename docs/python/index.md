@@ -12,17 +12,17 @@ Learn Python from your very first line of code to building real applications. To
 -   [Python Foundation](foundation/index.md)
 
     1. [Introduction to Python](foundation/01-introduction-to-python.md)
-    1. Variables in Python <span class="ksr-soon">Soon</span>
-    1. Data Types in Python <span class="ksr-soon">Soon</span>
-    1. Operators in Python <span class="ksr-soon">Soon</span>
-    1. Input, Output & Type Conversion <span class="ksr-soon">Soon</span>
-    1. Strings in Python <span class="ksr-soon">Soon</span>
-    1. Conditional Statements <span class="ksr-soon">Soon</span>
-    1. Loops in Python <span class="ksr-soon">Soon</span>
-    1. Lists in Python <span class="ksr-soon">Soon</span>
-    1. Tuples in Python <span class="ksr-soon">Soon</span>
-    1. Sets in Python <span class="ksr-soon">Soon</span>
-    1. Dictionaries in Python <span class="ksr-soon">Soon</span>
+    1. [Variables in Python](foundation/02-variables.md)
+    1. [Data Types in Python](foundation/03-data-types.md)
+    1. [Operators in Python](foundation/04-operators.md)
+    1. [Input, Output & Type Conversion](foundation/05-input-output-type-conversion.md)
+    1. [Strings in Python](foundation/06-strings.md)
+    1. [Conditional Statements](foundation/07-conditional-statements.md)
+    1. [Loops in Python](foundation/08-loops.md)
+    1. [Lists in Python](foundation/09-lists.md)
+    1. [Tuples in Python](foundation/10-tuples.md)
+    1. [Sets in Python](foundation/11-sets.md)
+    1. [Dictionaries in Python](foundation/12-dictionaries.md)
 
 -   Functions & Modules
 

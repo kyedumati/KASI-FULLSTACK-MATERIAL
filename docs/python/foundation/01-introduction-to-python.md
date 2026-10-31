@@ -405,4 +405,4 @@ Use **4 spaces** per level. VS Code inserts them automatically when you press ++
 | REPL | Interactive mode (`>>>`) for quick experiments |
 | Errors | Read the **last line** first |
 
-**Next lesson:** Variables in Python, where you'll learn how to store and reuse data.
+**Next lesson:** [Variables in Python](02-variables.md), where you'll learn how to store and reuse data.
