@@ -129,6 +129,14 @@ nav:
           - Tuples in Python: python/foundation/10-tuples.md
           - Sets in Python: python/foundation/11-sets.md
           - Dictionaries in Python: python/foundation/12-dictionaries.md
+      - Functions & Modules:
+          - python/functions/index.md
+          - Functions: python/functions/01-functions.md
+          - Arguments & Return Values: python/functions/02-arguments-and-return-values.md
+          - Lambda, Map & Filter: python/functions/03-lambda-map-filter.md
+          - List Comprehensions: python/functions/04-list-comprehensions.md
+          - Modules & Packages: python/functions/05-modules-and-packages.md
+          - Virtual Environments & pip: python/functions/06-virtual-environments-and-pip.md
   - Database: database/index.md
   - Generative AI: genai/index.md
   - Projects: projects/index.md

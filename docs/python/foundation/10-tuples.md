@@ -41,7 +41,7 @@ print(len(student))
 !!! example "Real-life analogy: a printed certificate"
     A list is like a **whiteboard**: write, erase, rewrite. A tuple is like a **printed certificate**: name, course and date are fixed once printed. You can read it as often as you like, but you can't edit it.
 
-**Key characteristics**
+**At a glance**
 
 | Property | List | Tuple |
 |----------|------|-------|

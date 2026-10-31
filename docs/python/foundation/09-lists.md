@@ -23,18 +23,18 @@ description: Creating lists, indexing and slicing, adding, changing and removing
 A **list** is an ordered collection of items stored in **one variable**.
 
 ```python
-fruits = ["apple", "banana", "mango"]
+courses = ["Python", "Django", "React"]
 marks = [85, 92, 78, 66]
 mixed = ["Ravi", 23, 5.9, True]
 empty = []
 
-print(fruits)
-print(type(fruits))
+print(courses)
+print(type(courses))
 print(len(marks))
 ```
 
 ```{ .text .output }
-['apple', 'banana', 'mango']
+['Python', 'Django', 'React']
 <class 'list'>
 4
 ```
@@ -42,7 +42,7 @@ print(len(marks))
 !!! example "Real-life analogy: a shopping list"
     A shopping list keeps items **in order**, lets you **add** or **cross out** items, can contain the **same item twice**, and you can say "the 3rd item". Python lists work exactly the same way.
 
-**Key characteristics**
+**At a glance**
 
 | Property | Meaning |
 |----------|---------|
@@ -92,28 +92,28 @@ Enter skills separated by commas: Python,SQL,React
 Lists use the same indexing and slicing as strings.
 
 ```python
-fruits = ["apple", "banana", "mango", "orange", "grape"]
+menu = ["Idli", "Dosa", "Vada", "Upma", "Poha"]
 
-print(fruits[0])       # first
-print(fruits[-1])      # last
-print(fruits[1:4])     # index 1, 2, 3
-print(fruits[:2])      # first two
-print(fruits[::-1])    # reversed copy
+print(menu[0])       # first
+print(menu[-1])      # last
+print(menu[1:4])     # index 1, 2, 3
+print(menu[:2])      # first two
+print(menu[::-1])    # reversed copy
 ```
 
 ```{ .text .output }
-apple
-grape
-['banana', 'mango', 'orange']
-['apple', 'banana']
-['grape', 'orange', 'mango', 'banana', 'apple']
+Idli
+Poha
+['Dosa', 'Vada', 'Upma']
+['Idli', 'Dosa']
+['Poha', 'Upma', 'Vada', 'Dosa', 'Idli']
 ```
 
 Check if an item exists with `in`:
 
 ```python
-print("mango" in fruits)
-print("kiwi" in fruits)
+print("Dosa" in menu)
+print("Pongal" in menu)
 ```
 
 ```{ .text .output }
@@ -126,13 +126,13 @@ False
 Lists are **mutable**: unlike strings, you can change them in place.
 
 ```python
-fruits = ["apple", "banana", "mango"]
-fruits[1] = "kiwi"
-print(fruits)
+menu = ["Idli", "Dosa", "Vada"]
+menu[1] = "Pongal"
+print(menu)
 ```
 
 ```{ .text .output }
-['apple', 'kiwi', 'mango']
+['Idli', 'Pongal', 'Vada']
 ```
 
 ### Adding items

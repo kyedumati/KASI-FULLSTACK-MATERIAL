@@ -24,14 +24,14 @@ Learn Python from your very first line of code to building real applications. To
     1. [Sets in Python](foundation/11-sets.md)
     1. [Dictionaries in Python](foundation/12-dictionaries.md)
 
--   Functions & Modules
+-   [Functions & Modules](functions/index.md)
 
-    1. Functions <span class="ksr-soon">Soon</span>
-    1. Arguments & Return Values <span class="ksr-soon">Soon</span>
-    1. Lambda, Map & Filter <span class="ksr-soon">Soon</span>
-    1. List Comprehensions <span class="ksr-soon">Soon</span>
-    1. Modules & Packages <span class="ksr-soon">Soon</span>
-    1. Virtual Environments & pip <span class="ksr-soon">Soon</span>
+    1. [Functions](functions/01-functions.md)
+    1. [Arguments & Return Values](functions/02-arguments-and-return-values.md)
+    1. [Lambda, Map & Filter](functions/03-lambda-map-filter.md)
+    1. [List Comprehensions](functions/04-list-comprehensions.md)
+    1. [Modules & Packages](functions/05-modules-and-packages.md)
+    1. [Virtual Environments & pip](functions/06-virtual-environments-and-pip.md)
 
 -   OOP & Advanced Python
 

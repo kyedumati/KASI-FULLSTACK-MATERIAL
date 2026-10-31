@@ -40,7 +40,7 @@ The duplicates disappeared automatically. Your output order may be different, be
 !!! example "Real-life analogy: a stamp collection"
     A collector keeps only **one** of each stamp. Getting a duplicate doesn't change the collection, and the album has no "first" or "third" stamp, only whether a stamp **is in the collection or not**.
 
-**Key characteristics**
+**At a glance**
 
 | Property | Meaning |
 |----------|---------|

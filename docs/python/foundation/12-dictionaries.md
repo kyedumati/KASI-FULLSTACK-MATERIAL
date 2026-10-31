@@ -60,7 +60,7 @@ Compare with a list:
     print(student["course"])     # self-explanatory
     ```
 
-**Key characteristics**
+**At a glance**
 
 | Property | Meaning |
 |----------|---------|
@@ -564,4 +564,4 @@ When both have the same key, the right-hand dict wins.
 | Nested | `d["contact"]["email"]`, lists of dicts = JSON |
 | Copy / Merge | `d.copy()`, `copy.deepcopy(d)`, `a | b` |
 
-🎉 **You've completed the Python Foundation module!** Next up: **Functions & Modules**, where you'll learn to organise your code into reusable pieces.
+🎉 **You've completed the Python Foundation module!** Next up: [**Functions & Modules**](../functions/index.md), where you'll learn to organise your code into reusable pieces.
