@@ -49,13 +49,14 @@ Learn Python from your very first line of code to building real applications. To
     1. [Request Bodies & Pydantic](fastapi/03-request-bodies-and-pydantic.md)
     1. [Responses, Status Codes & Errors](fastapi/04-responses-and-errors.md)
     1. [Routers & Project Structure](fastapi/05-routers-and-project-structure.md)
-    1. [SQLAlchemy & MySQL](fastapi/06-sqlalchemy-and-mysql.md)
-    1. [Database CRUD & Transactions](fastapi/07-database-crud.md)
-    1. [Dependency Injection & Settings](fastapi/08-dependencies-and-settings.md)
-    1. [Authentication with JWT](fastapi/09-authentication-jwt.md)
-    1. [Testing FastAPI](fastapi/10-testing-fastapi.md)
-    1. [CORS, Middleware & Background Tasks](fastapi/11-cors-middleware-background.md)
-    1. [Deployment & Capstone Project](fastapi/12-deployment-and-capstone.md)
+    1. [MySQL with mysql-connector-python](fastapi/06-mysql-connector.md)
+    1. [SQLAlchemy & MySQL](fastapi/07-sqlalchemy-and-mysql.md)
+    1. [Database CRUD & Transactions](fastapi/08-database-crud.md)
+    1. [Dependency Injection & Settings](fastapi/09-dependencies-and-settings.md)
+    1. [Authentication with JWT](fastapi/10-authentication-jwt.md)
+    1. [Testing FastAPI](fastapi/11-testing-fastapi.md)
+    1. [CORS, Middleware & Background Tasks](fastapi/12-cors-middleware-background.md)
+    1. [Deployment & Capstone Project](fastapi/13-deployment-and-capstone.md)
 
 -   Django
 

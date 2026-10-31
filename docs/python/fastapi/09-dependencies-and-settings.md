@@ -17,7 +17,7 @@ description: FastAPI dependency injection — function, class and yield dependen
     - Protect a group of endpoints with router-level dependencies (an API-key check)
     - Load configuration from environment variables and `.env` files with **pydantic-settings**, and run code at startup with **lifespan**
 
-**Prerequisites:** [Database CRUD & Transactions](07-database-crud.md)
+**Prerequisites:** [Database CRUD & Transactions](08-database-crud.md)
 
 ## What is Dependency Injection?
 
@@ -81,7 +81,7 @@ class Settings(BaseSettings):
 
     app_name: str = "KSR Shop API"
     debug: bool = False
-    database_url: str = "mysql+pymysql://root:password@localhost:3306/ksr_shop"
+    database_url: str = "mysql+mysqlconnector://root:password@localhost:3306/ksr_shop"
     admin_api_key: str
     max_page_size: int = 50
 
@@ -446,7 +446,7 @@ Field required
     ```text title=".env.example"
     APP_NAME="KSR Shop API"
     DEBUG=false
-    DATABASE_URL=mysql+pymysql://USER:PASSWORD@localhost:3306/ksr_shop
+    DATABASE_URL=mysql+mysqlconnector://USER:PASSWORD@localhost:3306/ksr_shop
     ADMIN_API_KEY=change-me
     MAX_PAGE_SIZE=50
     ```
@@ -584,4 +584,4 @@ When you run `fastapi dev app/main.py`, you'll see `Starting KSR Shop API (local
 | Priority | Environment variable > `.env` > default |
 | Startup / shutdown | `lifespan` async context manager |
 
-**Next lesson:** [Authentication with JWT](09-authentication-jwt.md), with password hashing, login, tokens and role-based access.
+**Next lesson:** [Authentication with JWT](10-authentication-jwt.md), with password hashing, login, tokens and role-based access.

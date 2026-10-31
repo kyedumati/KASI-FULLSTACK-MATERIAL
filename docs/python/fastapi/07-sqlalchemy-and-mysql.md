@@ -18,11 +18,11 @@ description: Connecting FastAPI to MySQL with SQLAlchemy 2.0 — engine, session
     - Use relationships to load related data (a product's category, a customer's orders)
     - Return ORM objects through Pydantic response models with `from_attributes`
 
-**Prerequisites:** [Routers & Project Structure](05-routers-and-project-structure.md), [Python + MySQL](../../database/mysql/13-python-mysql.md) and the [ksr_shop database](../../database/mysql/02-mysql-setup.md#loading-the-ksr_shop-database) loaded in your MySQL.
+**Prerequisites:** [MySQL with mysql-connector-python](06-mysql-connector.md), [Python + MySQL](../../database/mysql/13-python-mysql.md) and the [ksr_shop database](../../database/mysql/02-mysql-setup.md#loading-the-ksr_shop-database) loaded in your MySQL.
 
 ## From Raw SQL to an ORM
 
-In the MySQL module you queried the database with `mysql-connector`: SQL strings, `%s` parameters and tuples or dicts back. That works, and it's worth knowing. But in a large API you'd write hundreds of near-identical SQL strings and convert rows to objects by hand.
+In the [previous lesson](06-mysql-connector.md) you built endpoints with `mysql-connector-python`: SQL strings, `%s` parameters, dict rows, and `commit()` / `rollback()` / `close()` by hand. That works, and it's worth knowing. But in a large API you'd write hundreds of near-identical SQL strings and assemble `WHERE` clauses and joins by hand every time.
 
 An **ORM** (Object-Relational Mapper) lets you work with **Python classes and objects** instead, and generates the SQL for you:
 
@@ -40,14 +40,13 @@ An **ORM** (Object-Relational Mapper) lets you work with **Python classes and ob
 **SQLAlchemy** is Python's most widely used ORM and database toolkit. It also uses parameterised queries automatically, so ORM code is protected from SQL injection.
 
 ```bash
-pip install sqlalchemy pymysql cryptography
+pip install sqlalchemy mysql-connector-python
 ```
 
 | Package | Role |
 |---------|------|
 | `sqlalchemy` | The ORM |
-| `pymysql` | The MySQL **driver** SQLAlchemy uses to talk to the server |
-| `cryptography` | Needed by PyMySQL for MySQL 8's default password authentication |
+| `mysql-connector-python` | The MySQL **driver** SQLAlchemy uses to talk to the server: the same one you used in lesson 06 |
 
 ## The Database Connection
 
@@ -59,7 +58,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 DATABASE_URL = os.environ.get(
-    "DATABASE_URL", "mysql+pymysql://root:password@localhost:3306/ksr_shop"
+    "DATABASE_URL", "mysql+mysqlconnector://root:password@localhost:3306/ksr_shop"
 )
 
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
@@ -92,17 +91,17 @@ Set the URL for your machine before starting the server:
 === "macOS / Linux"
 
     ```{ .bash .no-run }
-    export DATABASE_URL="mysql+pymysql://root:YOUR_PASSWORD@localhost:3306/ksr_shop"
+    export DATABASE_URL="mysql+mysqlconnector://root:YOUR_PASSWORD@localhost:3306/ksr_shop"
     ```
 
 === "Windows (Command Prompt)"
 
     ```{ .bash .no-run }
-    set DATABASE_URL=mysql+pymysql://root:YOUR_PASSWORD@localhost:3306/ksr_shop
+    set DATABASE_URL=mysql+mysqlconnector://root:YOUR_PASSWORD@localhost:3306/ksr_shop
     ```
 
 !!! warning "Special characters in the password"
-    If your MySQL password contains `@`, `#`, `/` or `:`, URL-encode it: `@` becomes `%40` and `#` becomes `%23`. For example `Pass@123` becomes `Pass%40123` in the URL. In [lesson 08](08-dependencies-and-settings.md) you'll move all of this into a `.env` file.
+    If your MySQL password contains `@`, `#`, `/` or `:`, URL-encode it: `@` becomes `%40` and `#` becomes `%23`. For example `Pass@123` becomes `Pass%40123` in the URL. In [lesson 09](09-dependencies-and-settings.md) you'll move all of this into a `.env` file.
 
 ## ORM Models
 
@@ -317,7 +316,7 @@ def customer_orders(db: Session, customer_id: int) -> list[dict]:
     return result
 ```
 
-(To keep this lesson focused on the database, the "not found" checks raise `HTTPException` directly. In [lesson 07](07-database-crud.md) you'll return to the clean router → service → repository split.)
+(To keep this lesson focused on the database, the "not found" checks raise `HTTPException` directly. In [lesson 08](08-database-crud.md) you'll return to the clean router → service → repository split.)
 
 | SQL | SQLAlchemy 2.0 |
 |-----|----------------|
@@ -628,12 +627,12 @@ select(Order).options(selectinload(Order.items).selectinload(OrderItem.product))
 
 | Mistake | Error / Symptom | Fix |
 |---------|-----------------|-----|
-| Wrong URL / password | `OperationalError: (1045, "Access denied for user 'root'@'localhost'")` | Check `DATABASE_URL`; URL-encode special characters |
-| MySQL not running | `OperationalError: (2003, "Can't connect to MySQL server on 'localhost'")` | Start MySQL; check host and port |
-| Missing driver | `ModuleNotFoundError: No module named 'pymysql'` | `pip install pymysql cryptography` |
+| Wrong URL / password | `ProgrammingError: (mysql.connector.errors.ProgrammingError) 1045 (28000): Access denied for user 'root'@'localhost'` | Check `DATABASE_URL`; URL-encode special characters |
+| MySQL not running | `DatabaseError: (mysql.connector.errors.DatabaseError) 2003 (HY000): Can't connect to MySQL server on 'localhost:3306'` | Start MySQL; check host and port |
+| Missing driver | `ModuleNotFoundError: No module named 'mysql'` | `pip install mysql-connector-python` |
 | `from_attributes` missing | `ResponseValidationError` / "Input should be a valid dictionary" | `model_config = ConfigDict(from_attributes=True)` |
 | Session never closed | "Too many connections" after a while | Use the `get_db` dependency with `try/finally` |
-| `__tablename__` doesn't match the real table | `ProgrammingError: (1146, "Table 'ksr_shop.product' doesn't exist")` | Match the exact table name |
+| `__tablename__` doesn't match the real table | `ProgrammingError: (mysql.connector.errors.ProgrammingError) 1146 (42S02): Table 'ksr_shop.product' doesn't exist` | Match the exact table name |
 | Lazy-loading in a loop | Hundreds of queries, slow endpoints | `selectinload` / `joinedload` |
 | Building SQL with f-strings via `text()` | SQL injection risk | Use `select()`/`where()`, or `text()` with bound `:params` |
 
@@ -742,8 +741,8 @@ Use a fresh `ksr_shop` and the code from this lesson.
 
 | Concept | Code |
 |---------|------|
-| Install | `pip install sqlalchemy pymysql cryptography` |
-| URL | `mysql+pymysql://user:pass@host:3306/ksr_shop` (from env) |
+| Install | `pip install sqlalchemy mysql-connector-python` |
+| URL | `mysql+mysqlconnector://user:pass@host:3306/ksr_shop` (from env) |
 | Engine / sessions | `create_engine(URL, pool_pre_ping=True)` · `sessionmaker(bind=engine)` |
 | Model | `class Product(Base): __tablename__ = "products"; id: Mapped[int] = mapped_column(primary_key=True)` |
 | Relationship | `category: Mapped[Category] = relationship(back_populates="products")` |
@@ -752,4 +751,4 @@ Use a fresh `ksr_shop` and the code from this lesson.
 | Response | Pydantic `ConfigDict(from_attributes=True)` |
 | Performance | `selectinload` / `joinedload` against N+1; `echo=True` to see SQL |
 
-**Next lesson:** [Database CRUD & Transactions](07-database-crud.md), creating, updating and deleting rows, and placing orders safely.
+**Next lesson:** [Database CRUD & Transactions](08-database-crud.md), creating, updating and deleting rows, and placing orders safely.

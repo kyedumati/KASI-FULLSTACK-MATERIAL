@@ -17,7 +17,7 @@ description: Automated testing of FastAPI apps with pytest and TestClient — fi
     - Test success paths, validation errors, 404s and permissions, and use `parametrize` for many cases
     - Replace real dependencies (login, database) in tests with `app.dependency_overrides`
 
-**Prerequisites:** [Authentication with JWT](09-authentication-jwt.md)
+**Prerequisites:** [Authentication with JWT](10-authentication-jwt.md)
 
 ## Why Automated Tests?
 
@@ -83,7 +83,7 @@ def get_store() -> ProductStore:
 
 
 def get_current_user(authorization: Annotated[str | None, Header()] = None) -> dict:
-    # Simplified: lesson 09 decodes a real JWT here.
+    # Simplified: lesson 10 decodes a real JWT here.
     if authorization is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
     if authorization == "Bearer admin-token":
@@ -446,7 +446,7 @@ Most teams run fast unit tests on SQLite or with fakes, and a smaller set of int
 
 **Challenge**
 
-7. Write tests for your **lesson 07 order flow** using the SQLite override: create a category, a product with stock 3 and a customer in the fixture; then test that ordering 2 succeeds and reduces stock to 1, ordering 5 returns 409 and leaves stock unchanged, and an unknown customer returns 404. (Skip the `with_for_update` behaviour, which SQLite ignores.)
+7. Write tests for your **lesson 08 order flow** using the SQLite override: create a category, a product with stock 3 and a customer in the fixture; then test that ordering 2 succeeds and reduces stock to 1, ordering 5 returns 409 and leaves stock unchanged, and an unknown customer returns 404. (Skip the `with_for_update` behaviour, which SQLite ignores.)
 
 ??? success "Solutions (click to expand)"
 
@@ -514,4 +514,4 @@ Most teams run fast unit tests on SQLite or with fakes, and a smaller set of int
 | Many cases | `@pytest.mark.parametrize("payload, field", [...])` |
 | Test DB | SQLite in memory, or a separate MySQL test database |
 
-**Next lesson:** [CORS, Middleware & Background Tasks](11-cors-middleware-background.md), connecting a React frontend and adding cross-cutting features.
+**Next lesson:** [CORS, Middleware & Background Tasks](12-cors-middleware-background.md), connecting a React frontend and adding cross-cutting features.

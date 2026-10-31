@@ -42,7 +42,7 @@ flowchart LR
 | **Service** | `services/` | Business rules: stock checks, pricing, duplicates | HTTP status codes, request objects |
 | **Data** | `repositories/`, `models/` | Storage: lists now, SQLAlchemy and MySQL later | Business rules, HTTP |
 
-This lesson uses an in-memory store so you can focus on the structure. In [lesson 06](06-sqlalchemy-and-mysql.md) you'll swap the store for MySQL **without touching the routers**. That's the payoff of layers.
+This lesson uses an in-memory store so you can focus on the structure. In [lesson 06](06-mysql-connector.md) you'll swap the store for MySQL **without touching the routers**. That's the payoff of layers.
 
 ## The Project Layout
 
@@ -539,4 +539,4 @@ Open `/docs`: endpoints are now grouped under **Health** and **Products**, with 
 | Pagination schema | `{total, page, size, items}` |
 | Docs | Tags, `summary=`, docstrings |
 
-**Next lesson:** [SQLAlchemy & MySQL](06-sqlalchemy-and-mysql.md), replacing the in-memory dict with the real `ksr_shop` database.
+**Next lesson:** [MySQL with mysql-connector-python](06-mysql-connector.md), replacing the in-memory dict with the real `ksr_shop` database.

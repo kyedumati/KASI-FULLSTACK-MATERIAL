@@ -17,7 +17,7 @@ description: Authentication and authorisation in FastAPI — hashing passwords w
     - Build register, login (`/auth/token`) and `/auth/me` endpoints with OAuth2 password flow
     - Protect endpoints with a `get_current_user` dependency and restrict actions by **role**
 
-**Prerequisites:** [Dependency Injection & Settings](08-dependencies-and-settings.md)
+**Prerequisites:** [Dependency Injection & Settings](09-dependencies-and-settings.md)
 
 ## Authentication vs Authorisation
 
@@ -605,4 +605,4 @@ Open `/docs` and click **Authorize** 🔒. Enter `asha@example.com` / `Asha@2026
 | Roles | `Depends(require_role("admin"))` → 403 |
 | Use a token | `Authorization: Bearer <token>` |
 
-**Next lesson:** [Testing FastAPI](10-testing-fastapi.md), with automated tests using pytest and TestClient.
+**Next lesson:** [Testing FastAPI](11-testing-fastapi.md), with automated tests using pytest and TestClient.

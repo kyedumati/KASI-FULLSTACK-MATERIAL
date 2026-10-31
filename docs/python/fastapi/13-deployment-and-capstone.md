@@ -47,8 +47,7 @@ The equivalent with Uvicorn directly is `uvicorn app.main:app --host 0.0.0.0 --p
 ```text title="requirements.txt"
 fastapi[standard]==0.162.0
 sqlalchemy==2.1.6
-pymysql==1.2.3
-cryptography==50.0.2
+mysql-connector-python==26.10.0
 pydantic-settings==2.16.2
 bcrypt==5.0.0
 PyJWT==2.15.1
@@ -58,7 +57,7 @@ Exact versions (`==`) mean the server installs exactly what you tested. Generate
 
 ### 2. Configuration only from the environment
 
-Everything that differs between laptop and server (database URL, secret key, CORS origins, debug flag) comes from **settings** ([lesson 08](08-dependencies-and-settings.md)). The code is identical everywhere.
+Everything that differs between laptop and server (database URL, secret key, CORS origins, debug flag) comes from **settings** ([lesson 09](09-dependencies-and-settings.md)). The code is identical everywhere.
 
 ### 3. A health check that tests dependencies
 
@@ -175,7 +174,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD}@db:3306/ksr_shop
+      DATABASE_URL: mysql+mysqlconnector://root:${MYSQL_ROOT_PASSWORD}@db:3306/ksr_shop
       SECRET_KEY: ${SECRET_KEY}
     depends_on:
       db:

@@ -18,7 +18,7 @@ description: Creating, updating and deleting MySQL rows through SQLAlchemy in a 
     - Place an order as **one transaction**: check stock, write rows, reduce stock, commit or roll back
     - Lock rows with `with_for_update()` to prevent overselling
 
-**Prerequisites:** [SQLAlchemy & MySQL](06-sqlalchemy-and-mysql.md) and [Transactions](../../database/mysql/12-transactions-indexes-users.md) from the MySQL module.
+**Prerequisites:** [SQLAlchemy & MySQL](07-sqlalchemy-and-mysql.md) and [Transactions](../../database/mysql/12-transactions-indexes-users.md) from the MySQL module.
 
 ## How Writes Work in SQLAlchemy
 
@@ -55,7 +55,7 @@ flowchart LR
 | `routers.py` | HTTP: parse input, call the service, return schemas and status codes |
 | `exceptions.py` | Domain errors + one handler each |
 
-??? info "app/database.py and app/models.py (unchanged from lesson 06, expand to copy)"
+??? info "app/database.py and app/models.py (unchanged from lesson 07, expand to copy)"
 
     ```python title="app/database.py"
     import os
@@ -65,7 +65,7 @@ flowchart LR
     from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
     DATABASE_URL = os.environ.get(
-        "DATABASE_URL", "mysql+pymysql://root:password@localhost:3306/ksr_shop"
+        "DATABASE_URL", "mysql+mysqlconnector://root:password@localhost:3306/ksr_shop"
     )
 
     engine = create_engine(DATABASE_URL, pool_pre_ping=True)
@@ -478,7 +478,7 @@ register_exception_handlers(app)
 app.include_router(router)
 ```
 
-`product_service` is a dependency that itself depends on `get_db`. FastAPI resolves the chain automatically: session → service → endpoint. You'll explore this in the [next lesson](08-dependencies-and-settings.md).
+`product_service` is a dependency that itself depends on `get_db`. FastAPI resolves the chain automatically: session → service → endpoint. You'll explore this in the [next lesson](09-dependencies-and-settings.md).
 
 ## Trying It: Create, Update, Delete
 
@@ -778,4 +778,4 @@ Use a fresh `ksr_shop`.
 | Layers | Router (HTTP) → Service (rules, commit) → Repository (queries) |
 | Dependency chain | `get_db` → `ProductService` → endpoint |
 
-**Next lesson:** [Dependency Injection & Settings](08-dependencies-and-settings.md), reusable dependencies, configuration and `.env` files.
+**Next lesson:** [Dependency Injection & Settings](09-dependencies-and-settings.md), reusable dependencies, configuration and `.env` files.

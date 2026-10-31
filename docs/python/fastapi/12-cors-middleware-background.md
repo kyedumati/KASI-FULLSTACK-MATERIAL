@@ -17,7 +17,7 @@ description: Connecting a browser frontend to FastAPI with CORS, writing middlew
     - Call your API from plain JavaScript (`fetch`) and from React, including the auth token
     - Serve a simple HTML page from FastAPI for quick demos
 
-**Prerequisites:** [Testing FastAPI](10-testing-fastapi.md) and the Frontend module basics (HTML and JavaScript).
+**Prerequisites:** [Testing FastAPI](11-testing-fastapi.md) and the Frontend module basics (HTML and JavaScript).
 
 ## The Problem: The Browser Blocks Your API
 
@@ -370,7 +370,7 @@ Because this request sends `Content-Type: application/json` and an `Authorizatio
 
 **Challenge**
 
-7. Build a one-page HTML frontend in a separate folder, served by VS Code Live Server (a different origin), with a login form and an "Order" button that calls your **lesson 09** auth API: it logs in, stores the token, places an order with the `Authorization` header, and shows the response or a friendly error. Make it work by configuring CORS correctly, and document each preflight you see in the browser's Network tab.
+7. Build a one-page HTML frontend in a separate folder, served by VS Code Live Server (a different origin), with a login form and an "Order" button that calls your **lesson 10** auth API: it logs in, stores the token, places an order with the `Authorization` header, and shows the response or a friendly error. Make it work by configuring CORS correctly, and document each preflight you see in the browser's Network tab.
 
 ??? success "Solutions (click to expand)"
 
@@ -445,4 +445,4 @@ Because this request sends `Content-Type: application/json` and an `Authorizatio
 | Heavy jobs | Celery / RQ with Redis |
 | Frontend call | `fetch(url, {headers: {Authorization: "Bearer " + token}})` |
 
-**Next lesson:** [Deployment & Capstone Project](12-deployment-and-capstone.md), taking the KSR Shop API to production.
+**Next lesson:** [Deployment & Capstone Project](13-deployment-and-capstone.md), taking the KSR Shop API to production.
