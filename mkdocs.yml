@@ -1,8 +1,8 @@
-site_name: Kasi Yedumati · Full Stack Training
-site_description: Full Stack Python & Java training material for beginners and career switchers
-site_url: https://kyedumati.github.io/KASI-FULLSTACK-TRAINING/
+site_name: Kasi Yedumati · Full Stack Material
+site_description: Full Stack Python & Java material for beginners and career switchers
+site_url: https://kyedumati.github.io/KASI-FULLSTACK-MATERIAL/
 edit_uri: ""
-copyright: Copyright &copy; 2026 Kasi Yedumati · Full Stack Training
+copyright: Copyright &copy; 2026 Kasi Yedumati · Full Stack Material
 
 theme:
   name: material

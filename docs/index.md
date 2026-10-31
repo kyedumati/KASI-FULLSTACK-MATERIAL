@@ -6,7 +6,7 @@ hide:
 
 <div class="ksr-hero" markdown>
 
-<span class="ksr-eyebrow">Kasi Yedumati · Full Stack Training</span>
+<span class="ksr-eyebrow">Kasi Yedumati · Full Stack Material</span>
 
 # From zero to job-ready full stack developer
 

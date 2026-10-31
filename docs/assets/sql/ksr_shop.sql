@@ -1,5 +1,5 @@
 -- =====================================================================
---  Kasi Yedumati · Full Stack Training · ksr_shop practice database (MySQL 8+)
+--  Kasi Yedumati · Full Stack Material · ksr_shop practice database (MySQL 8+)
 --  Used in every lesson of the MySQL module.
 --  Safe to re-run: it drops and recreates the ksr_shop database.
 -- =====================================================================
