@@ -32,7 +32,7 @@ Step-by-step material for **Full Stack Java** and **Full Stack Python**, written
 
     ---
 
-    Core Java → JDBC → MySQL → Hibernate → Spring → Spring Boot → Spring AI → React
+    Core Java → MySQL → JDBC → Hibernate → Spring → Spring Boot → React → Spring AI
 
     [:octicons-arrow-right-24: Java roadmap](roadmaps/java-track.md)
 
@@ -40,7 +40,7 @@ Step-by-step material for **Full Stack Java** and **Full Stack Python**, written
 
     ---
 
-    Python → MySQL → Django → FastAPI → Generative AI → React
+    Python → MySQL → FastAPI → Django → React → Generative AI
 
     [:octicons-arrow-right-24: Python roadmap](roadmaps/python-track.md)
 

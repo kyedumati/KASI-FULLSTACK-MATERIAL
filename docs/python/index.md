@@ -44,10 +44,10 @@ Learn Python from your very first line of code to building real applications. To
 
 -   Web Frameworks
 
+    1. FastAPI Fundamentals <span class="ksr-soon">Soon</span>
+    1. FastAPI with MySQL <span class="ksr-soon">Soon</span>
     1. Django Fundamentals <span class="ksr-soon">Soon</span>
     1. Django Models & ORM <span class="ksr-soon">Soon</span>
     1. Django REST Framework <span class="ksr-soon">Soon</span>
-    1. FastAPI Fundamentals <span class="ksr-soon">Soon</span>
-    1. FastAPI with MySQL <span class="ksr-soon">Soon</span>
 
 </div>

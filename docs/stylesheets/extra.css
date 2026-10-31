@@ -450,3 +450,200 @@
 .md-typeset .ksr-topics ol li a { color: var(--md-default-fg-color); }
 .md-typeset .ksr-topics ol li a:hover { color: var(--md-primary-fg-color); }
 .md-typeset .ksr-topics .ksr-soon { font-size: .58rem; font-weight: 600; color: var(--md-default-fg-color--light); background: var(--ksr-soft); border-radius: 999px; padding: .1em .6em; margin-left: .4em; }
+
+/* ==========================================================================
+   Visual roadmaps (docs/roadmaps/*)
+   ========================================================================== */
+.rm-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+  gap: .9rem .6rem;
+  margin: 1.6rem 0 2.6rem;
+  padding: 1.4rem 1.2rem;
+  border: 1px solid var(--ksr-border);
+  border-radius: 18px;
+  background: var(--ksr-soft);
+}
+.md-typeset a.rm-dot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .45rem;
+  text-align: center;
+  color: var(--md-default-fg-color);
+  text-decoration: none;
+}
+.rm-dot-icon {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--c) 35%, transparent);
+  transition: transform .2s ease;
+}
+.md-typeset .rm-dot-icon { color: #fff; }
+.md-typeset .rm-dot-icon .twemoji { height: 1.45rem; }
+.md-typeset .rm-dot-icon .twemoji svg { width: 1.45rem; }
+/* markdown wraps inline items in <p>; let them take part in the grid/flex layout */
+.md-typeset .rm-overview > p, .md-typeset .rm-head > p { display: contents; }
+.md-typeset a.rm-dot:hover .rm-dot-icon { transform: translateY(-3px) scale(1.06); }
+.rm-dot-label { font-size: .62rem; font-weight: 600; line-height: 1.3; }
+
+.rm-timeline { position: relative; margin: 1rem 0 2rem; }
+.rm-timeline::before {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; left: 50%;
+  width: 4px;
+  transform: translateX(-50%);
+  border-radius: 4px;
+  background: linear-gradient(180deg, #2447d4, #0d9488 35%, #d97706 60%, #7c3aed 85%, #db2777);
+  opacity: .5;
+}
+.rm-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 4rem 1fr;
+  align-items: center;
+  margin-bottom: 1.4rem;
+  scroll-margin-top: 7rem;
+}
+.rm-node {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  background: var(--md-default-bg-color);
+  border: 3px solid var(--c);
+  color: var(--c);
+  font-weight: 800;
+  font-size: .72rem;
+  box-shadow: 0 0 0 5px var(--md-default-bg-color);
+}
+.rm-card {
+  grid-column: 1;
+  grid-row: 1;
+  position: relative;
+  background: var(--ksr-surface);
+  border: 1px solid var(--ksr-border);
+  border-top: 4px solid var(--c);
+  border-radius: var(--ksr-radius);
+  padding: 1.1rem 1.25rem 1rem;
+  box-shadow: var(--ksr-shadow);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.rm-step:nth-child(even) .rm-card { grid-column: 3; }
+.rm-card:hover { transform: translateY(-3px); box-shadow: var(--ksr-shadow-hover); }
+
+/* small pointer from the card towards the centre line */
+.rm-card::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -.55rem;
+  width: 1rem; height: 1rem;
+  background: var(--ksr-surface);
+  border-right: 1px solid var(--ksr-border);
+  border-top: 1px solid var(--ksr-border);
+  transform: translateY(-50%) rotate(45deg);
+}
+.rm-step:nth-child(even) .rm-card::after {
+  right: auto;
+  left: -.55rem;
+  transform: translateY(-50%) rotate(-135deg);
+}
+
+.rm-head { display: flex; align-items: center; gap: .8rem; margin-bottom: .5rem; }
+.rm-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.6rem; height: 2.6rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--c) 14%, transparent);
+}
+.md-typeset .rm-icon { color: var(--c); }
+.md-typeset .rm-icon .twemoji { height: 1.4rem; }
+.md-typeset .rm-icon .twemoji svg { width: 1.4rem; }
+.rm-phase {
+  display: block;
+  font-size: .58rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--c);
+}
+.rm-title { display: block; font-size: 1.05rem; font-weight: 800; letter-spacing: -.01em; color: var(--md-default-fg-color); line-height: 1.3; }
+.md-typeset .rm-desc { margin: 0 0 .7rem; font-size: .76rem; line-height: 1.6; color: var(--md-default-fg-color--light); }
+.rm-tags { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .8rem; }
+.rm-tags span {
+  font-size: .6rem;
+  font-weight: 600;
+  padding: .2em .7em;
+  border-radius: 999px;
+  color: var(--c);
+  background: color-mix(in srgb, var(--c) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c) 22%, transparent);
+}
+[data-md-color-scheme="slate"] .rm-tags span,
+[data-md-color-scheme="slate"] .rm-phase { color: color-mix(in srgb, var(--c) 55%, #fff); }
+[data-md-color-scheme="slate"] .md-typeset .rm-icon { color: color-mix(in srgb, var(--c) 55%, #fff); }
+[data-md-color-scheme="slate"] .rm-node { color: color-mix(in srgb, var(--c) 55%, #fff); }
+.rm-status {
+  display: inline-block;
+  font-size: .62rem;
+  font-weight: 700;
+  padding: .3em .9em;
+  border-radius: 999px;
+  color: var(--md-default-fg-color--light);
+  background: var(--ksr-soft);
+}
+.md-typeset a.rm-status.rm-live { color: #fff; background: var(--c); text-decoration: none; }
+.md-typeset a.rm-status.rm-live:hover { filter: brightness(1.1); }
+
+/* stagger alternate cards on wide screens so the zig-zag has no big gaps */
+@media screen and (min-width: 60em) {
+  .rm-step + .rm-step { margin-top: -4.5rem; }
+}
+@media screen and (max-width: 59.9375em) {
+  .rm-timeline::before { left: 1.3rem; transform: none; }
+  .rm-step { grid-template-columns: 2.6rem 1fr; gap: .9rem; }
+  .rm-node { grid-column: 1; justify-self: start; }
+  .rm-card, .rm-step:nth-child(even) .rm-card { grid-column: 2; }
+  .rm-card::after, .rm-step:nth-child(even) .rm-card::after {
+    right: auto; left: -.55rem; transform: translateY(-50%) rotate(-135deg);
+  }
+}
+
+/* ==========================================================================
+   Mermaid diagrams in brand colours
+   ========================================================================== */
+[data-md-color-scheme="default"] {
+  --md-mermaid-font-family: var(--md-text-font-family), sans-serif;
+  --md-mermaid-edge-color: #64748b;
+  --md-mermaid-node-bg-color: #eef2ff;
+  --md-mermaid-node-fg-color: #1a34a3;
+  --md-mermaid-label-bg-color: #ffffff;
+  --md-mermaid-label-fg-color: #1b2033;
+}
+[data-md-color-scheme="slate"] {
+  --md-mermaid-font-family: var(--md-text-font-family), sans-serif;
+  --md-mermaid-edge-color: #8b9bc0;
+  --md-mermaid-node-bg-color: #1c2547;
+  --md-mermaid-node-fg-color: #c7d2ff;
+  --md-mermaid-label-bg-color: #131a2c;
+  --md-mermaid-label-fg-color: #e4e8f3;
+}
+.md-typeset .mermaid {
+  padding: 1.2rem;
+  border: 1px solid var(--ksr-border);
+  border-radius: var(--ksr-radius);
+  background: var(--ksr-soft);
+}
