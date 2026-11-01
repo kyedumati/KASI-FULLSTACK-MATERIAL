@@ -160,6 +160,19 @@ nav:
           - Testing FastAPI: python/fastapi/11-testing-fastapi.md
           - CORS, Middleware & Background Tasks: python/fastapi/12-cors-middleware-background.md
           - Deployment & Capstone Project: python/fastapi/13-deployment-and-capstone.md
+      - Django:
+          - python/django/index.md
+          - Introduction & Setup: python/django/01-introduction-and-setup.md
+          - URLs, Views & Templates: python/django/02-urls-views-templates.md
+          - Models & Migrations: python/django/03-models-and-migrations.md
+          - The Django ORM: python/django/04-the-django-orm.md
+          - Django Admin: python/django/05-django-admin.md
+          - Forms & ModelForms: python/django/06-forms-and-modelforms.md
+          - Class-Based Views: python/django/07-class-based-views.md
+          - Authentication & Authorization: python/django/08-authentication-and-authorization.md
+          - Django REST Framework: python/django/09-django-rest-framework.md
+          - Testing Django: python/django/10-testing-django.md
+          - Security, Deployment & Capstone: python/django/11-security-deployment-capstone.md
   - Java: java/index.md
   - Frontend: frontend/index.md
   - Database:

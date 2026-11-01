@@ -389,4 +389,4 @@ Build the complete backend for the KSR online store using everything from this m
 | Reverse proxy | HTTPS, load balancing, protection |
 | Capstone | KSR Shop API: auth, catalogue, transactional orders, reports, tests, Docker |
 
-🎉 **You've completed the FastAPI module!** Next on the Python roadmap: **Django**, the full-featured framework with an ORM, admin panel and Django REST Framework.
+🎉 **You've completed the FastAPI module!** Next on the Python roadmap: **[Django](../django/index.md)**, the full-featured framework with an ORM, admin panel and Django REST Framework.

@@ -62,7 +62,7 @@ Your step-by-step path from writing your first line of Python to shipping a full
 <div class="rm-head" markdown><span class="rm-icon" markdown>:material-web:</span><div><span class="rm-phase">Phase 5 · Backend</span><span class="rm-title">Django</span></div></div>
 <p class="rm-desc">Build complete web apps with Django&#x27;s ORM, admin panel and authentication, then APIs with DRF.</p>
 <div class="rm-tags"><span>MVT</span><span>Models &amp; ORM</span><span>Admin</span><span>Auth</span><span>Django REST Framework</span></div>
-<span class="rm-status">Coming soon</span>
+<a class="rm-status rm-live" href="../../python/django/">Start learning →</a>
 </div>
 </div>
 <div class="rm-step" id="step-6" style="--c:#ea580c" markdown>

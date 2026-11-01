@@ -58,10 +58,18 @@ Learn Python from your very first line of code to building real applications. To
     1. [CORS, Middleware & Background Tasks](fastapi/12-cors-middleware-background.md)
     1. [Deployment & Capstone Project](fastapi/13-deployment-and-capstone.md)
 
--   Django
+-   [Django](django/index.md)
 
-    1. Django Fundamentals <span class="ksr-soon">Soon</span>
-    1. Django Models & ORM <span class="ksr-soon">Soon</span>
-    1. Django REST Framework <span class="ksr-soon">Soon</span>
+    1. [Introduction & Setup](django/01-introduction-and-setup.md)
+    1. [URLs, Views & Templates](django/02-urls-views-templates.md)
+    1. [Models & Migrations](django/03-models-and-migrations.md)
+    1. [The Django ORM](django/04-the-django-orm.md)
+    1. [Django Admin](django/05-django-admin.md)
+    1. [Forms & ModelForms](django/06-forms-and-modelforms.md)
+    1. [Class-Based Views](django/07-class-based-views.md)
+    1. [Authentication & Authorization](django/08-authentication-and-authorization.md)
+    1. [Django REST Framework](django/09-django-rest-framework.md)
+    1. [Testing Django](django/10-testing-django.md)
+    1. [Security, Deployment & Capstone](django/11-security-deployment-capstone.md)
 
 </div>
