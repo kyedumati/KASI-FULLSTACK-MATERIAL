@@ -5,7 +5,7 @@ hide:
 
 # HTML, CSS & JavaScript
 
-Build the **KSR Store** website from a blank file to a responsive, accessible shop that loads products from an API and has a working cart. Shared by the Python and Java tracks: the same frontend later talks to your Django, FastAPI or Spring Boot backend.
+Build the **KSR Store** website from a blank file to a responsive, accessible shop that loads products from an API and has a working cart. Shared by the Python and Java tracks: the same frontend later talks to your Django REST Framework or Spring Boot backend.
 
 !!! abstract "By the end of this module, you can"
     - Write semantic, accessible HTML pages and forms that send data to a backend

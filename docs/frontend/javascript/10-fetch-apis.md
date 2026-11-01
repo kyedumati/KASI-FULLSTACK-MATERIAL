@@ -559,7 +559,7 @@ The same frontend works with the backends from the other modules. Change `API_BA
 | Backend | Products URL | Enable CORS for `http://127.0.0.1:5500` | Notes |
 |---------|--------------|------------------------------------------|-------|
 | **Django REST Framework** (Django lesson 9) | `http://127.0.0.1:8000/api/products/` | `pip install django-cors-headers`, add its middleware, `CORS_ALLOWED_ORIGINS = ["http://127.0.0.1:5500"]` | Lists are paginated: use `data.results`; `category` is a slug; price is a string (`Number(p.price)`) |
-| **FastAPI** (FastAPI lesson 12) | `http://127.0.0.1:8000/products` | `app.add_middleware(CORSMiddleware, allow_origins=["http://127.0.0.1:5500"], ...)` | Errors use `detail`, like our mock API |
+| **FastAPI** (FastAPI lesson 12) | The FastAPI module builds AcmeHR, an HR system, so add a small `/products` router over `ksr_shop` yourself (FastAPI lessons 05–07 show how) | `app.add_middleware(CORSMiddleware, allow_origins=["http://127.0.0.1:5500"], ...)` | Errors use `detail`, like our mock API |
 | **Spring Boot** | `http://localhost:8080/api/products` | `@CrossOrigin(origins = "http://127.0.0.1:5500")` on the controller, or a `WebMvcConfigurer` | Field names follow your Java DTOs |
 
 For Django, the only code change is one line in `getProducts`:

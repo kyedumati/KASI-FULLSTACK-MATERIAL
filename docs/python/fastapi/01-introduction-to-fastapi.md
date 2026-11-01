@@ -24,42 +24,54 @@ In the OOP module you called other people's APIs with `requests`. Now you'll bui
 
 ```mermaid
 flowchart LR
-  B["Frontend<br/>React in the browser,<br/>mobile app"] -->|"HTTP request<br/>GET /products"| A["Backend API<br/>FastAPI"]
-  A -->|"SQL"| D[("MySQL<br/>ksr_shop")]
+  B["Frontend<br/>React in the browser,<br/>mobile app"] -->|"HTTP request<br/>GET /employees"| A["Backend API<br/>FastAPI"]
+  A -->|"SQL"| D[("MySQL<br/>acmehr")]
   D --> A
   A -->|"JSON response<br/>200 OK"| B
 ```
 
 - The **frontend** shows screens and buttons. It never touches the database directly.
-- The **backend API** receives requests, applies business rules (validation, permissions, prices), talks to the database, and returns JSON.
+- The **backend API** receives requests, applies business rules (validation, permissions, leave policies), talks to the database, and returns JSON.
 
 !!! example "Real-life analogy: a restaurant kitchen"
     Customers (the frontend) never walk into the kitchen. They order through a waiter, using a menu that lists what you can ask for. The kitchen (your API) prepares the order using ingredients from the store room (the database) and sends back a plate (a JSON response). The menu is your **API documentation**.
 
-Throughout this module you'll build the **KSR Shop API**: the backend for the online store whose database you designed in the MySQL module. Products, customers, orders, login, everything.
+Throughout this module you'll build the **AcmeHR API**: the backend of an employee management system for Acme Technologies, a 20-person company with offices in Hyderabad, Bengaluru and Pune. Its requirements come from a real-style **Business Requirements Document (BRD)**: an employee directory and profiles, departments and reporting lines, leave applications with manager approval, daily attendance, an HR dashboard, and role-based access for employees, managers and HR.
+
+| BRD module | What the API will do | Lessons |
+|------------|----------------------|---------|
+| Employee information | Directory, profiles, self-service updates, documents | 2–4, 6, 12 |
+| Organisation structure | Departments, sub-departments, managers and their teams | 5, 7 |
+| Leave management | Apply, approve, reject, cancel; balances; holidays | 3, 5, 8 |
+| Time & attendance | Check-in, check-out, late arrivals, daily report | 7, 9 |
+| Security & roles | Login, employee / manager / HR admin permissions | 10 |
+
+!!! info "Reading a BRD"
+    A BRD describes *what* the business needs ("a manager must approve leave for their own team only"), not *how* to code it. Turning those sentences into endpoints, validation rules and database tables is exactly the backend developer's job, and it's what you'll practise in every lesson.
 
 ## REST in Five Minutes
 
 **REST** is the most common style for web APIs. Its core ideas:
 
-| Idea | Meaning | KSR Shop example |
-|------|---------|------------------|
-| **Resources** | Things your API manages, each with a URL | `/products`, `/products/7`, `/orders` |
+| Idea | Meaning | AcmeHR example |
+|------|---------|----------------|
+| **Resources** | Things your API manages, each with a URL | `/employees`, `/employees/E-1042`, `/leave-requests` |
 | **HTTP methods** | The action to perform on a resource | `GET` read, `POST` create, `PUT`/`PATCH` update, `DELETE` remove |
 | **Status codes** | Did it work? | `200 OK`, `201 Created`, `404 Not Found`, `422` invalid input |
-| **JSON** | The data format | `{"id": 7, "name": "Running Shoes", "price": 4299}` |
+| **JSON** | The data format | `{"code": "E-1042", "name": "Ananya Rao", "department": "Engineering"}` |
 | **Stateless** | Each request carries everything needed (like a login token) | No server memory of "the previous click" |
 
 | Request | Meaning |
 |---------|---------|
-| `GET /products` | List products |
-| `GET /products/7` | Get product 7 |
-| `POST /products` | Create a product (data in the body) |
-| `PUT /products/7` | Replace product 7 |
-| `PATCH /products/7` | Update some fields of product 7 |
-| `DELETE /products/7` | Delete product 7 |
+| `GET /employees` | List employees |
+| `GET /employees/E-1042` | Get employee E-1042 |
+| `POST /employees` | Create an employee (data in the body) |
+| `PUT /employees/E-1042` | Replace employee E-1042's record |
+| `PATCH /employees/E-1042` | Update some fields (say, the phone number) |
+| `DELETE /documents/5` | Delete document 5 |
+| `POST /leave-requests/12/approve` | An *action* on a resource: approve leave request 12 |
 
-Notice the pattern: **nouns** in the URL, **verbs** as the HTTP method. Avoid URLs like `/getProducts` or `/deleteProduct?id=7`.
+Notice the pattern: **nouns** in the URL, **verbs** as the HTTP method. Avoid URLs like `/getEmployees` or `/deleteDocument?id=5`. The last row is a common, practical exception: when an action (approve, cancel, check in) isn't a simple create or update, it becomes a small sub-resource with `POST`.
 
 ## Why FastAPI?
 
@@ -67,7 +79,7 @@ Notice the pattern: **nouns** in the URL, **verbs** as the HTTP method. Avoid UR
 
 | Feature | What it means for you |
 |---------|----------------------|
-| **Type hints drive everything** | `def get_product(product_id: int)` automatically converts and validates the input |
+| **Type hints drive everything** | `def get_leave_request(request_id: int)` automatically converts and validates the input |
 | **Automatic validation** | Bad input gets a clear `422` error, without writing `if` checks |
 | **Automatic docs** | Interactive API documentation at `/docs`, generated from your code |
 | **Fast** | One of the fastest Python frameworks (built on Starlette and Pydantic) |
@@ -88,8 +100,8 @@ Notice the pattern: **nouns** in the URL, **verbs** as the HTTP method. Avoid UR
 Create a project folder with a virtual environment and install FastAPI with its standard extras (the `fastapi` command, the Uvicorn server and helpers):
 
 ```bash
-mkdir ksr-shop-api
-cd ksr-shop-api
+mkdir acmehr-api
+cd acmehr-api
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install "fastapi[standard]"
@@ -100,17 +112,27 @@ Create `main.py`:
 ```python title="main.py"
 from fastapi import FastAPI
 
-app = FastAPI(title="KSR Shop API", version="1.0")
+app = FastAPI(title="AcmeHR API", version="1.0")
 
 
 @app.get("/")
 def home():
-    return {"message": "Welcome to the KSR Shop API"}
+    return {"message": "Welcome to the AcmeHR API"}
 
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/api/info")
+def api_info():
+    return {
+        "company": "Acme Technologies",
+        "product": "AcmeHR",
+        "modules": ["employees", "organisation", "leave", "attendance"],
+        "locations": ["Hyderabad", "Bengaluru", "Pune"],
+    }
 ```
 
 Line by line:
@@ -120,7 +142,7 @@ Line by line:
 | `app = FastAPI(...)` | Creates the application. `title` and `version` appear in the docs |
 | `@app.get("/")` | A **path operation decorator**: "when a `GET` request arrives for `/`, call the function below" |
 | `def home():` | The **path operation function** (also called a route handler or endpoint) |
-| `return {...}` | FastAPI converts the dict to JSON automatically |
+| `return {...}` | FastAPI converts the dict to JSON automatically, including nested lists and dicts |
 
 ### Run it
 
@@ -138,7 +160,7 @@ fastapi dev main.py
 
   Logs:
 
-INFO:     Will watch for changes in these directories: ['/Users/ravi/ksr-shop-api']
+INFO:     Will watch for changes in these directories: ['/Users/ravi/acmehr-api']
 INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
 INFO:     Started reloader process [31693] using WatchFiles
 INFO:     Started server process [31696]
@@ -161,7 +183,7 @@ curl -s http://127.0.0.1:8000/
 
 ```{ .text .output }
 {
-  "message": "Welcome to the KSR Shop API"
+  "message": "Welcome to the AcmeHR API"
 }
 ```
 
@@ -175,10 +197,25 @@ curl -s http://127.0.0.1:8000/health
 }
 ```
 
+```bash
+curl -s http://127.0.0.1:8000/api/info
+```
+
+```{ .text .output }
+{
+  "company": "Acme Technologies",
+  "product": "AcmeHR",
+  "modules": ["employees", "organisation", "leave", "attendance"],
+  "locations": ["Hyderabad", "Bengaluru", "Pune"]
+}
+```
+
+A health endpoint looks trivial, but every real deployment has one: load balancers and monitoring tools call `/health` every few seconds and alert someone when it stops answering.
+
 A URL that doesn't exist returns **404** with a JSON error:
 
 ```bash
-curl -s -w "\nHTTP %{http_code}\n" http://127.0.0.1:8000/products
+curl -s -w "\nHTTP %{http_code}\n" http://127.0.0.1:8000/employees
 ```
 
 ```{ .text .output }
@@ -208,14 +245,14 @@ curl -s http://127.0.0.1:8000/openapi.json | python -c "import json,sys; d=json.
 ```
 
 ```{ .text .output }
-{'title': 'KSR Shop API', 'version': '1.0'}
-['/', '/health']
+{'title': 'AcmeHR API', 'version': '1.0'}
+['/', '/health', '/api/info']
 ```
 
 This JSON follows the **OpenAPI** standard. Tools use it to generate client code, Postman collections and tests, and frontend developers read `/docs` to learn how to call your API without asking you.
 
 !!! realworld "In Real Projects"
-    In a team, the backend developer shares the `/docs` link with the React and mobile developers on day one. As soon as an endpoint is added in code, it appears in the docs, so documentation never goes out of date.
+    At Acme, the backend developer shares the `/docs` link with the React and mobile developers on day one. As soon as an endpoint is added in code, it appears in the docs, so documentation never goes out of date.
 
 ## How It Works: ASGI, Uvicorn and Async
 
@@ -260,14 +297,14 @@ async def slow_report():
 
 **Easy**
 
-1. Add `GET /about` that returns `{"app": "KSR Shop API", "version": "1.0", "team": "<your name>"}`.
+1. Add `GET /about` that returns `{"app": "AcmeHR API", "version": "1.0", "team": "<your name>"}`.
 2. Open `/docs` and call every endpoint with **Try it out**.
 3. Use `curl -w` to show the status code for `/about` and for a URL that doesn't exist.
 
 **Medium**
 
 4. Add `GET /time` that returns the current server time in ISO format (`datetime.now().isoformat()`).
-5. Add `GET /store-info` that returns a nested JSON with the store name, a list of three categories, and an `address` object (city, pincode).
+5. Add `GET /company` that returns a nested JSON with the company name, a list of the three office cities, and a `head_office` object (city, pincode).
 6. Change the app's `title` and add a `description` in `FastAPI(...)`. Where does it appear?
 
 **Challenge**
@@ -281,15 +318,15 @@ async def slow_report():
     from fastapi import FastAPI
 
     app = FastAPI(
-        title="KSR Shop API",
-        description="Backend for the KSR online store",    # 6: shown under the title in /docs
+        title="AcmeHR API",
+        description="Employee management system for Acme Technologies",    # 6: shown under the title in /docs
         version="1.0",
     )
 
     # 1
     @app.get("/about")
     def about():
-        return {"app": "KSR Shop API", "version": "1.0", "team": "Ravi"}
+        return {"app": "AcmeHR API", "version": "1.0", "team": "Ravi"}
 
     # 4
     @app.get("/time")
@@ -297,12 +334,12 @@ async def slow_report():
         return {"time": datetime.now().isoformat()}
 
     # 5
-    @app.get("/store-info")
-    def store_info():
+    @app.get("/company")
+    def company():
         return {
-            "name": "KSR Shop",
-            "categories": ["Electronics", "Fashion", "Books"],
-            "address": {"city": "Hyderabad", "pincode": "500081"},
+            "name": "Acme Technologies",
+            "offices": ["Hyderabad", "Bengaluru", "Pune"],
+            "head_office": {"city": "Hyderabad", "pincode": "500081"},
         }
     ```
 
@@ -329,7 +366,7 @@ async def slow_report():
     ```
 
 !!! note "Mini Assignment"
-    Start your **KSR Shop API** repository: create the project with a venv, `main.py` with `/`, `/health` and `/about`, a `requirements.txt` (`pip freeze > requirements.txt`), a `.gitignore` (`.venv/`, `__pycache__/`, `.env`) and a `README.md` with run instructions. Push it to GitHub. You'll extend this same repository in every lesson.
+    Start your **AcmeHR API** repository: create the project with a venv, `main.py` with `/`, `/health`, `/api/info` and `/about`, a `requirements.txt` (`pip freeze > requirements.txt`), a `.gitignore` (`.venv/`, `__pycache__/`, `.env`) and a `README.md` with run instructions. Push it to GitHub. You'll extend this same repository in every lesson.
 
 ## Interview Questions
 

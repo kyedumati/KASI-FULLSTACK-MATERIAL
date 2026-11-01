@@ -4,7 +4,7 @@ category: FastAPI
 short: MySQL Connector
 api_app: app.main:app
 api_db: true
-description: Connecting FastAPI to MySQL with mysql-connector-python — a connection pool, a per-request connection dependency, parameterised SQL, three real endpoints, and mapping MySQL error codes to HTTP responses.
+description: Connecting the AcmeHR API to MySQL with mysql-connector-python — loading the acmehr database, a connection pool, a per-request connection dependency, parameterised SQL with joins, and mapping MySQL error codes to HTTP responses.
 ---
 
 # MySQL with mysql-connector-python
@@ -12,30 +12,75 @@ description: Connecting FastAPI to MySQL with mysql-connector-python — a conne
 !!! abstract "Learning Objectives"
     By the end of this lesson, you can:
 
-    - Connect FastAPI to MySQL using `mysql-connector-python`, the driver from the MySQL module
+    - Load the `acmehr` database and connect FastAPI to it using `mysql-connector-python`, the driver from the MySQL module
     - Reuse connections efficiently with a **connection pool**
     - Give every request its own connection with a `yield` dependency that always returns it to the pool
-    - Build three real endpoints with parameterised SQL: a filtered, paginated list, a detail view and a create
+    - Build real endpoints with parameterised SQL and joins: a filtered, paginated directory, a profile, leave balances and a create
     - Translate MySQL error codes (`1452`, `1062`) into proper HTTP responses, and explain what an ORM will automate next
 
-**Prerequisites:** [Routers & Project Structure](05-routers-and-project-structure.md), [Python + MySQL](../../database/mysql/13-python-mysql.md), and the [ksr_shop database](../../database/mysql/02-mysql-setup.md#loading-the-ksr_shop-database) loaded in your MySQL.
+**Prerequisites:** [Routers & Project Structure](05-routers-and-project-structure.md) and [Python + MySQL](../../database/mysql/13-python-mysql.md).
 
 ## From In-Memory Lists to a Real Database
 
-Until now, the KSR Shop API kept products in Python lists, and every restart lost the data. Now the API will read and write the real **ksr_shop** database you built in the MySQL module.
+Until now, the AcmeHR API kept employees in Python dicts, and every restart lost the data. Now the API will read and write a real MySQL database, **acmehr**, built from the BRD.
 
 You already know how to talk to MySQL from Python with `mysql-connector-python`: connect, run parameterised SQL, fetch rows, commit. This lesson puts exactly that inside FastAPI. In the [next lesson](07-sqlalchemy-and-mysql.md) you'll see how an ORM (SQLAlchemy) removes much of the repetitive work, and you'll appreciate *why*, because you'll have done it by hand first.
 
 ```mermaid
 flowchart LR
-  C["Client"] -->|"GET /products?category=Fashion"| R["Router<br/>main.py"]
+  C["Client"] -->|"GET /employees?location=Pune"| R["Router<br/>main.py"]
   R --> Q["Repository<br/>repository.py<br/>SQL strings"]
   Q -->|"conn.cursor().execute(sql, params)"| P["Connection pool<br/>db.py"]
-  P --> M[("MySQL<br/>ksr_shop")]
+  P --> M[("MySQL<br/>acmehr")]
 ```
 
-!!! example "Real-life analogy: a taxi stand"
-    Opening a new MySQL connection is like calling a taxi from the depot for every trip: slow. A **connection pool** is a taxi stand outside your office: a few cars are always waiting. You take one, finish your trip, and it goes back to the stand for the next person.
+!!! example "Real-life analogy: the office cab pool"
+    Booking a brand-new cab for every trip between Acme's offices is slow: the driver has to come from the depot each time. A **cab pool** keeps a few cars waiting in the parking lot. You take one, finish your trip, and it goes back to the lot for the next person. A **connection pool** does that with database connections.
+
+## Loading the acmehr Database
+
+Download **[acmehr.sql](../../assets/sql/acmehr.sql)** and load it into your MySQL 8 server, from MySQL Workbench (**File → Open SQL Script**, then run it) or from a terminal:
+
+```{ .bash .no-run }
+mysql -u root -p < acmehr.sql
+```
+
+The script is safe to re-run: it drops and recreates the database, so you can always go back to a clean copy. It has 12 tables:
+
+```mermaid
+erDiagram
+  locations ||--o{ employees : "works at"
+  departments ||--o{ employees : "belongs to"
+  departments ||--o{ departments : "parent of"
+  designations ||--o{ employees : "has title"
+  shifts ||--o{ employees : "works"
+  employees ||--o{ employees : "manages"
+  employees ||--o{ leave_requests : "applies"
+  leave_types ||--o{ leave_requests : "of type"
+  employees ||--o{ leave_balances : "has"
+  employees ||--o{ attendance : "checks in"
+  employees ||--o{ documents : "uploads"
+```
+
+| Table | Rows | What it holds |
+|-------|------|---------------|
+| `employees` | 20 | The master record: `employee_code`, names, work email, department, designation, location, **manager** (`manager_id` points to another employee), shift, status, role, emergency contact |
+| `departments` | 8 | With sub-departments (`parent_id`): Platform Engineering and Quality Assurance sit under Engineering |
+| `designations`, `locations`, `shifts` | 14, 3, 2 | Job titles, the three offices, General (09:00–18:00) and Early (07:00–16:00) shifts |
+| `leave_types`, `holidays` | 6, 7 | CL, SL, EL, maternity, paternity, loss of pay; Acme's 2026 holidays |
+| `leave_requests`, `leave_balances` | 15, 57 | Requests in every status; 2026 balances where `used` equals the approved days |
+| `attendance` | 93 | Check-ins and check-outs for the week of Monday 5 October 2026 |
+| `documents`, `audit_logs` | 6, 0 | Uploaded document details; the audit trail the API will write |
+
+A quick check in MySQL:
+
+```sql
+SELECT employee_code, first_name, last_name FROM acmehr.employees WHERE manager_id = 2;
+```
+
+That lists Karthik's direct reports, including Ananya Rao (E-1042), the employee from the BRD's wireframes.
+
+## Setup
 
 Install the driver in your project's virtual environment:
 
@@ -48,7 +93,7 @@ Set your connection details as environment variables (never hard-code passwords)
 === "macOS / Linux"
 
     ```{ .bash .no-run }
-    export DB_HOST=localhost DB_PORT=3306 DB_USER=root DB_PASSWORD='your-password' DB_NAME=ksr_shop
+    export DB_HOST=localhost DB_PORT=3306 DB_USER=root DB_PASSWORD='your-password' DB_NAME=acmehr
     ```
 
 === "Windows (Command Prompt)"
@@ -67,13 +112,13 @@ from mysql.connector import pooling
 from mysql.connector.pooling import PooledMySQLConnection
 
 pool = pooling.MySQLConnectionPool(
-    pool_name="ksr_pool",
+    pool_name="acmehr_pool",
     pool_size=5,
     host=os.environ.get("DB_HOST", "localhost"),
     port=int(os.environ.get("DB_PORT", 3306)),
     user=os.environ.get("DB_USER", "root"),
     password=os.environ.get("DB_PASSWORD", ""),
-    database=os.environ.get("DB_NAME", "ksr_shop"),
+    database=os.environ.get("DB_NAME", "acmehr"),
 )
 
 
@@ -97,81 +142,103 @@ def get_connection() -> Generator[PooledMySQLConnection, None, None]:
 
 ## Schemas
 
-The same Pydantic patterns as before. `ProductOut` matches the columns our SQL returns:
+The same Pydantic patterns as before. Each `Out` model matches the columns our SQL returns:
 
 ```python title="app/schemas.py"
+from datetime import date
+
 from pydantic import BaseModel, Field
 
 
-class ProductOut(BaseModel):
-    id: int
+class EmployeeOut(BaseModel):
+    code: str
     name: str
-    category: str
-    brand: str | None
-    price: float
-    stock: int
-    rating: float | None
+    email: str
+    department: str
+    designation: str
+    location: str
+    manager: str | None
+    hire_date: date
+    status: str
 
 
-class ProductPage(BaseModel):
+class EmployeePage(BaseModel):
     total: int
     page: int
     size: int
-    items: list[ProductOut]
+    items: list[EmployeeOut]
 
 
-class ProductCreate(BaseModel):
-    name: str = Field(min_length=2, max_length=100)
-    category_id: int = Field(gt=0)
-    brand: str | None = None
-    price: float = Field(gt=0)
-    stock: int = Field(default=0, ge=0)
+class LeaveBalanceOut(BaseModel):
+    leave_type: str
+    name: str
+    allocated: float
+    used: float
+    remaining: float
+
+
+class DepartmentCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=60)
+    parent_id: int | None = Field(default=None, gt=0)
+
+
+class DepartmentOut(BaseModel):
+    id: int
+    name: str
+    parent: str | None
+    headcount: int
 ```
 
-MySQL returns `price` and `rating` as Python `Decimal` objects; Pydantic converts them to `float` for the JSON response.
+MySQL returns `DECIMAL` columns like `allocated` and `used` as Python `Decimal` objects; Pydantic converts them to `float` for the JSON response.
 
 ## The Repository: SQL in One Place
 
-All SQL for products lives in one module. Every function receives the connection from the endpoint:
+All SQL lives in one module. Every function receives the connection from the endpoint. An employee's directory entry needs **five tables**: the employee, their department, designation and location, and their manager, which is the `employees` table joined to **itself**:
 
 ```python title="app/repository.py"
-from datetime import date
-
 from mysql.connector.pooling import PooledMySQLConnection
 
-SELECT_PRODUCT = """
-    SELECT p.id, p.name, c.name AS category, p.brand, p.price, p.stock, p.rating
-    FROM products p
-    JOIN categories c ON c.id = p.category_id
+EMPLOYEE_FROM = """
+    FROM employees e
+    JOIN departments d  ON d.id = e.department_id
+    JOIN designations g ON g.id = e.designation_id
+    JOIN locations l    ON l.id = e.location_id
+    LEFT JOIN employees m ON m.id = e.manager_id
 """
 
-SORT_COLUMNS = {"name": "p.name", "price": "p.price", "rating": "p.rating DESC"}
+SELECT_EMPLOYEE = f"""
+    SELECT e.employee_code AS code,
+           CONCAT(e.first_name, ' ', e.last_name) AS name,
+           e.email, d.name AS department, g.title AS designation, l.city AS location,
+           CONCAT(m.first_name, ' ', m.last_name) AS manager,
+           e.hire_date, e.status
+    {EMPLOYEE_FROM}
+"""
+
+SORT_COLUMNS = {"name": "e.first_name, e.last_name", "hire_date": "e.hire_date", "code": "e.employee_code"}
 
 
-def list_products(conn: PooledMySQLConnection, category: str | None, search: str | None,
-                  max_price: float | None, sort: str, page: int, size: int) -> dict:
-    conditions, params = [], []
-    if category:
-        conditions.append("c.name = %s")
-        params.append(category)
-    if search:
-        conditions.append("p.name LIKE %s")
-        params.append(f"%{search}%")
-    if max_price is not None:
-        conditions.append("p.price <= %s")
-        params.append(max_price)
-    where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+def list_employees(conn: PooledMySQLConnection, q: str | None, department: str | None,
+                   location: str | None, status: str, sort: str, page: int, size: int) -> dict:
+    conditions, params = ["e.status = %s"], [status]
+    if q:
+        conditions.append("CONCAT(e.first_name, ' ', e.last_name) LIKE %s")
+        params.append(f"%{q}%")
+    if department:
+        conditions.append("d.name = %s")
+        params.append(department)
+    if location:
+        conditions.append("l.city = %s")
+        params.append(location)
+    where = "WHERE " + " AND ".join(conditions)
 
     cursor = conn.cursor(dictionary=True)
-    cursor.execute(
-        f"SELECT COUNT(*) AS total FROM products p JOIN categories c ON c.id = p.category_id {where}",
-        params,
-    )
+    cursor.execute(f"SELECT COUNT(*) AS total {EMPLOYEE_FROM} {where}", params)
     total = cursor.fetchone()["total"]
 
     order_by = SORT_COLUMNS[sort]                     # from a fixed allow-list, never from user text
     cursor.execute(
-        f"{SELECT_PRODUCT} {where} ORDER BY {order_by}, p.id LIMIT %s OFFSET %s",
+        f"{SELECT_EMPLOYEE} {where} ORDER BY {order_by}, e.id LIMIT %s OFFSET %s",
         params + [size, (page - 1) * size],
     )
     items = cursor.fetchall()
@@ -179,23 +246,49 @@ def list_products(conn: PooledMySQLConnection, category: str | None, search: str
     return {"total": total, "page": page, "size": size, "items": items}
 
 
-def get_product(conn: PooledMySQLConnection, product_id: int) -> dict | None:
+def get_employee(conn: PooledMySQLConnection, code: str) -> dict | None:
     cursor = conn.cursor(dictionary=True)
-    cursor.execute(f"{SELECT_PRODUCT} WHERE p.id = %s", (product_id,))
+    cursor.execute(f"{SELECT_EMPLOYEE} WHERE e.employee_code = %s", (code,))
     row = cursor.fetchone()
     cursor.close()
     return row
 
 
-def create_product(conn: PooledMySQLConnection, name: str, category_id: int, brand: str | None,
-                   price: float, stock: int) -> int:
+def get_leave_balances(conn: PooledMySQLConnection, code: str, year: int) -> list[dict]:
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        """SELECT lt.code AS leave_type, lt.name, b.allocated, b.used, b.allocated - b.used AS remaining
+           FROM leave_balances b
+           JOIN leave_types lt ON lt.id = b.leave_type_id
+           JOIN employees e    ON e.id = b.employee_id
+           WHERE e.employee_code = %s AND b.year = %s
+           ORDER BY lt.id""",
+        (code, year),
+    )
+    rows = cursor.fetchall()
+    cursor.close()
+    return rows
+
+
+def get_department(conn: PooledMySQLConnection, department_id: int) -> dict | None:
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        """SELECT d.id, d.name, p.name AS parent,
+                  (SELECT COUNT(*) FROM employees e
+                   WHERE e.department_id = d.id AND e.status <> 'exited') AS headcount
+           FROM departments d LEFT JOIN departments p ON p.id = d.parent_id
+           WHERE d.id = %s""",
+        (department_id,),
+    )
+    row = cursor.fetchone()
+    cursor.close()
+    return row
+
+
+def create_department(conn: PooledMySQLConnection, name: str, parent_id: int | None) -> int:
     cursor = conn.cursor()
     try:
-        cursor.execute(
-            """INSERT INTO products (name, category_id, brand, price, stock, added_on)
-               VALUES (%s, %s, %s, %s, %s, %s)""",
-            (name, category_id, brand, price, stock, date.today()),
-        )
+        cursor.execute("INSERT INTO departments (name, parent_id) VALUES (%s, %s)", (name, parent_id))
         conn.commit()
         return cursor.lastrowid
     except Exception:
@@ -205,11 +298,12 @@ def create_product(conn: PooledMySQLConnection, name: str, category_id: int, bra
         cursor.close()
 ```
 
-Three things to notice:
+Four things to notice:
 
-1. **Every value is a `%s` parameter**, including the `LIKE` pattern (`f"%{search}%"` builds the *value*, not the SQL). No user input is ever pasted into the SQL text, so the API is safe from SQL injection.
+1. **Every value is a `%s` parameter**, including the `LIKE` pattern (`f"%{q}%"` builds the *value*, not the SQL). No user input is ever pasted into the SQL text, so the API is safe from SQL injection.
 2. **The WHERE clause is built from fixed pieces.** We only add conditions we wrote ourselves; only the *values* come from the user.
-3. **`ORDER BY` can't be a parameter.** Placeholders work only for values, not for column names. So the user picks a key (`"price"`), and we look up the real SQL from our own `SORT_COLUMNS` dictionary. Anything else is rejected by FastAPI's validation before it gets here.
+3. **`ORDER BY` can't be a parameter.** Placeholders work only for values, not for column names. So the user picks a key (`"hire_date"`), and we look up the real SQL from our own `SORT_COLUMNS` dictionary. Anything else is rejected by FastAPI's validation before it gets here.
+4. **The manager is a `LEFT JOIN`.** Lakshmi, the CEO, has no manager (`manager_id` is `NULL`). An inner `JOIN` would silently drop her from the directory; a `LEFT JOIN` keeps her, with `manager` as `null`.
 
 ## The Endpoints
 
@@ -217,50 +311,61 @@ Three things to notice:
 from typing import Annotated, Literal
 
 import mysql.connector
-from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
 from mysql.connector.pooling import PooledMySQLConnection
 
 from app import repository
 from app.db import get_connection
-from app.schemas import ProductCreate, ProductOut, ProductPage
+from app.schemas import DepartmentCreate, DepartmentOut, EmployeeOut, EmployeePage, LeaveBalanceOut
 
-app = FastAPI(title="KSR Shop API", version="2.0")
+app = FastAPI(title="AcmeHR API", version="2.0")
 
 Conn = Annotated[PooledMySQLConnection, Depends(get_connection)]
+EmployeeCode = Annotated[str, Path(pattern=r"^E-\d{4}$")]
 
 
-@app.get("/products", response_model=ProductPage, tags=["Products"])
-def list_products(
+@app.get("/employees", response_model=EmployeePage, tags=["Employees"])
+def list_employees(
     conn: Conn,
-    category: str | None = None,
-    search: Annotated[str | None, Query(min_length=2)] = None,
-    max_price: Annotated[float | None, Query(gt=0)] = None,
-    sort: Literal["name", "price", "rating"] = "name",
+    q: Annotated[str | None, Query(min_length=2)] = None,
+    department: str | None = None,
+    location: str | None = None,
+    status: Literal["active", "on_notice", "exited"] = "active",
+    sort: Literal["name", "hire_date", "code"] = "name",
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1, le=50)] = 5,
 ):
-    return repository.list_products(conn, category, search, max_price, sort, page, size)
+    return repository.list_employees(conn, q, department, location, status, sort, page, size)
 
 
-@app.get("/products/{product_id}", response_model=ProductOut, tags=["Products"])
-def get_product(product_id: int, conn: Conn):
-    product = repository.get_product(conn, product_id)
-    if product is None:
-        raise HTTPException(status_code=404, detail=f"Product {product_id} not found")
-    return product
+@app.get("/employees/{code}", response_model=EmployeeOut, tags=["Employees"])
+def get_employee(code: EmployeeCode, conn: Conn):
+    employee = repository.get_employee(conn, code)
+    if employee is None:
+        raise HTTPException(status_code=404, detail=f"Employee {code} not found")
+    return employee
 
 
-@app.post("/products", response_model=ProductOut, status_code=status.HTTP_201_CREATED, tags=["Products"])
-def create_product(data: ProductCreate, conn: Conn):
+@app.get("/employees/{code}/leave-balances", response_model=list[LeaveBalanceOut], tags=["Leave"])
+def leave_balances(code: EmployeeCode, conn: Conn, year: Annotated[int, Query(ge=2020, le=2100)] = 2026):
+    balances = repository.get_leave_balances(conn, code, year)
+    if not balances and repository.get_employee(conn, code) is None:
+        raise HTTPException(status_code=404, detail=f"Employee {code} not found")
+    return balances
+
+
+@app.post("/departments", response_model=DepartmentOut, status_code=status.HTTP_201_CREATED,
+          tags=["Organisation"])
+def create_department(data: DepartmentCreate, conn: Conn):
     try:
-        new_id = repository.create_product(conn, data.name, data.category_id, data.brand, data.price, data.stock)
+        new_id = repository.create_department(conn, data.name, data.parent_id)
     except mysql.connector.Error as e:
-        if e.errno == 1452:          # foreign key: category doesn't exist
-            raise HTTPException(status_code=400, detail=f"Category {data.category_id} does not exist")
+        if e.errno == 1452:          # foreign key: the parent department doesn't exist
+            raise HTTPException(status_code=400, detail=f"Parent department {data.parent_id} does not exist")
         if e.errno == 1062:          # duplicate value in a UNIQUE column
-            raise HTTPException(status_code=409, detail="Product already exists")
+            raise HTTPException(status_code=409, detail=f"Department '{data.name}' already exists")
         raise
-    return repository.get_product(conn, new_id)
+    return repository.get_department(conn, new_id)
 ```
 
 Run it from the project root:
@@ -269,82 +374,78 @@ Run it from the project root:
 fastapi dev app/main.py
 ```
 
-## Trying the Three Endpoints
+## Trying the Endpoints
 
-### 1. List: filters, sorting and pagination in SQL
+### 1. The directory: filters, sorting and pagination in SQL
+
+Who works from the Pune office?
 
 ```bash
-curl -s "http://127.0.0.1:8000/products?category=Fashion&sort=price"
+curl -s "http://127.0.0.1:8000/employees?location=Pune"
 ```
 
 ```{ .text .output }
 {
-  "total": 3,
+  "total": 2,
   "page": 1,
   "size": 5,
   "items": [
     {
-      "id": 8,
-      "name": "Cotton T-Shirt",
-      "category": "Fashion",
-      "brand": "Puma",
-      "price": 799.0,
-      "stock": 150,
-      "rating": 4.0
+      "code": "E-1048",
+      "name": "Sneha Patil",
+      "email": "sneha.patil@acme.example",
+      "department": "Platform Engineering",
+      "designation": "Software Engineer",
+      "location": "Pune",
+      "manager": "Karthik Menon",
+      "hire_date": "2024-06-03",
+      "status": "active"
     },
     {
-      "id": 6,
-      "name": "Denim Jacket",
-      "category": "Fashion",
-      "brand": "Levis",
-      "price": 3499.0,
-      "stock": 40,
-      "rating": 4.4
-    },
-    {
-      "id": 7,
-      "name": "Running Shoes",
-      "category": "Fashion",
-      "brand": "Puma",
-      "price": 4299.0,
-      "stock": 60,
-      "rating": 4.2
+      "code": "E-1047",
+      "name": "Vikram Joshi",
+      "email": "vikram.joshi@acme.example",
+      "department": "Platform Engineering",
+      "designation": "DevOps Engineer",
+      "location": "Pune",
+      "manager": "Karthik Menon",
+      "hire_date": "2020-08-24",
+      "status": "active"
     }
   ]
 }
 ```
 
-The filtering, sorting and paging all happened **inside MySQL** (`WHERE`, `ORDER BY`, `LIMIT/OFFSET`), so only the rows needed for this page travel over the network.
+Each row came from five tables, joined in one query. The filtering, sorting and paging all happened **inside MySQL** (`WHERE`, `ORDER BY`, `LIMIT/OFFSET`), so only the rows needed for this page travel over the network.
 
-Page 2 of a search: three products contain "at" and cost at most ₹3,000, so with 2 per page the second page has one item, and `total` still reports all 3:
+Engineering by joining date, page 2 with 3 per page. `total` still counts everyone in Engineering:
 
 ```bash
-curl -s "http://127.0.0.1:8000/products?search=at&max_price=3000&size=2&page=2"
+curl -s "http://127.0.0.1:8000/employees?department=Engineering&sort=hire_date&size=3&page=2" \
+  | python -c "import json,sys; d=json.load(sys.stdin); print('total', d['total']); [print(e['hire_date'], e['code'], e['name'], '->', e['manager']) for e in d['items']]"
 ```
 
 ```{ .text .output }
-{
-  "total": 3,
-  "page": 2,
-  "size": 2,
-  "items": [
-    {
-      "id": 14,
-      "name": "Yoga Mat",
-      "category": "Sports",
-      "brand": "Decathlon",
-      "price": 999.0,
-      "stock": 0,
-      "rating": 4.3
-    }
-  ]
-}
+total 5
+2023-02-13 E-1046 Priya Nair -> Karthik Menon
+2025-01-06 E-1050 Kavya Srinivasan -> Karthik Menon
+```
+
+The CEO has no manager, and the `LEFT JOIN` keeps her:
+
+```bash
+curl -s "http://127.0.0.1:8000/employees?department=Leadership" \
+  | python -c "import json,sys; [print(e['name'], '|', e['designation'], '| manager:', e['manager']) for e in json.load(sys.stdin)['items']]"
+```
+
+```{ .text .output }
+Lakshmi Menon | Chief Executive Officer | manager: None
 ```
 
 Validation still protects the database: `sort` must be one of three words, so a malicious value never reaches the SQL:
 
 ```bash
-curl -s -w "\nHTTP %{http_code}\n" "http://127.0.0.1:8000/products?sort=price;DROP%20TABLE%20products"
+curl -s -w "\nHTTP %{http_code}\n" "http://127.0.0.1:8000/employees?sort=name;DROP%20TABLE%20employees"
 ```
 
 ```{ .text .output }
@@ -353,10 +454,10 @@ curl -s -w "\nHTTP %{http_code}\n" "http://127.0.0.1:8000/products?sort=price;DR
     {
       "type": "literal_error",
       "loc": ["query", "sort"],
-      "msg": "Input should be 'name', 'price' or 'rating'",
-      "input": "price;DROP TABLE products",
+      "msg": "Input should be 'name', 'hire_date' or 'code'",
+      "input": "name;DROP TABLE employees",
       "ctx": {
-        "expected": "'name', 'price' or 'rating'"
+        "expected": "'name', 'hire_date' or 'code'"
       }
     }
   ]
@@ -364,74 +465,114 @@ curl -s -w "\nHTTP %{http_code}\n" "http://127.0.0.1:8000/products?sort=price;DR
 HTTP 422
 ```
 
-### 2. Detail
+### 2. A profile
+
+Arjun is a QA Engineer in the Quality Assurance sub-department, reporting to Swati:
 
 ```bash
-curl -s http://127.0.0.1:8000/products/7
+curl -s http://127.0.0.1:8000/employees/E-1043
 ```
 
 ```{ .text .output }
 {
-  "id": 7,
-  "name": "Running Shoes",
-  "category": "Fashion",
-  "brand": "Puma",
-  "price": 4299.0,
-  "stock": 60,
-  "rating": 4.2
+  "code": "E-1043",
+  "name": "Arjun Reddy",
+  "email": "arjun.reddy@acme.example",
+  "department": "Quality Assurance",
+  "designation": "QA Engineer",
+  "location": "Hyderabad",
+  "manager": "Swati Kulkarni",
+  "hire_date": "2022-01-10",
+  "status": "active"
 }
 ```
 
 ```bash
-curl -s -w "\nHTTP %{http_code}\n" http://127.0.0.1:8000/products/999
+curl -s -w "\nHTTP %{http_code}\n" http://127.0.0.1:8000/employees/E-1999
 ```
 
 ```{ .text .output }
 {
-  "detail": "Product 999 not found"
+  "detail": "Employee E-1999 not found"
 }
 HTTP 404
 ```
 
-### 3. Create
+### 3. Leave balances
+
+The BRD's wireframe shows Ananya's dashboard with *Casual 8, Sick 10, Earned 15*. Her approved leave this year (four casual days and two sick days) is already in `used`:
 
 ```bash
-curl -s -X POST http://127.0.0.1:8000/products \
+curl -s http://127.0.0.1:8000/employees/E-1042/leave-balances
+```
+
+```{ .text .output }
+[
+  {
+    "leave_type": "CL",
+    "name": "Casual leave",
+    "allocated": 12.0,
+    "used": 4.0,
+    "remaining": 8.0
+  },
+  {
+    "leave_type": "SL",
+    "name": "Sick leave",
+    "allocated": 12.0,
+    "used": 2.0,
+    "remaining": 10.0
+  },
+  {
+    "leave_type": "EL",
+    "name": "Earned leave",
+    "allocated": 15.0,
+    "used": 0.0,
+    "remaining": 15.0
+  }
+]
+```
+
+### 4. Create a department, and MySQL's errors
+
+Acme is starting a data team under Engineering:
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/departments \
   -H "Content-Type: application/json" \
-  -d '{"name": "Football", "category_id": 5, "brand": "Nivia", "price": 899, "stock": 40}'
+  -d '{"name": "Data Science", "parent_id": 2}'
 ```
 
 ```{ .text .output }
 {
-  "id": 16,
-  "name": "Football",
-  "category": "Sports",
-  "brand": "Nivia",
-  "price": 899.0,
-  "stock": 40,
-  "rating": null
+  "id": 9,
+  "name": "Data Science",
+  "parent": "Engineering",
+  "headcount": 0
 }
 ```
 
-MySQL generated `id` 16 (`cursor.lastrowid`), and we read the row back with its category name. Open MySQL Workbench and run `SELECT * FROM products WHERE id = 16;`: the row is really there.
+MySQL generated `id` 9 (`cursor.lastrowid`), and we read the row back with its parent's name. Open MySQL Workbench and run `SELECT * FROM departments WHERE id = 9;`: the row is really there.
 
-A category that doesn't exist triggers MySQL's foreign key (`ERROR 1452` from the MySQL module), which we translate into a clear **400**:
+A parent that doesn't exist triggers MySQL's foreign key (`ERROR 1452` from the MySQL module), and a name that's taken triggers the `UNIQUE` constraint (`ERROR 1062`). We translate each into a clear response:
 
 ```bash
-curl -s -w "\nHTTP %{http_code}\n" -X POST http://127.0.0.1:8000/products \
-  -H "Content-Type: application/json" \
-  -d '{"name": "Kite", "category_id": 99, "price": 150}'
+curl -s -w "\nHTTP %{http_code}\n" -X POST http://127.0.0.1:8000/departments \
+  -H "Content-Type: application/json" -d '{"name": "Research", "parent_id": 99}'
+curl -s -w "\nHTTP %{http_code}\n" -X POST http://127.0.0.1:8000/departments \
+  -H "Content-Type: application/json" -d '{"name": "Finance"}'
 ```
 
 ```{ .text .output }
-{
-  "detail": "Category 99 does not exist"
-}
+{"detail":"Parent department 99 does not exist"}
 HTTP 400
+{"detail":"Department 'Finance' already exists"}
+HTTP 409
 ```
+
+The database enforced both rules for us; the API just explains them politely.
 
 !!! realworld "In Real Projects"
-    Many production APIs use exactly this approach (a pool, a repository of SQL, error-code mapping), especially for reporting endpoints with complex queries or for teams with strong SQL skills. Even teams that use an ORM drop down to raw SQL for heavy reports. Knowing both is what makes a backend developer dependable.
+    Many production APIs use exactly this approach (a pool, a repository of SQL, error-code mapping), especially for reporting endpoints with complex queries or for teams with strong SQL skills. HR and payroll reports (headcount by department and location, attrition, leave liability) are often hand-written SQL even in projects that use an ORM everywhere else. Knowing both is what makes a backend developer dependable.
 
 ## What's Painful Here, and What an ORM Fixes
 
@@ -439,11 +580,11 @@ Writing the API by hand taught you what really happens. It also shows the pain p
 
 | Pain point in this lesson | How SQLAlchemy helps (next lesson) |
 |---------------------------|------------------------------------|
-| SQL strings repeated and joined by hand (`SELECT_PRODUCT + WHERE ...`) | Queries built with Python: `select(Product).where(...)` |
-| Rows are dicts; typos in keys fail at runtime | Rows are typed objects: `product.price` |
-| Joins written manually every time | Relationships: `product.category.name` |
+| SQL strings repeated and joined by hand (`SELECT_EMPLOYEE + WHERE ...`) | Queries built with Python: `select(Employee).where(...)` |
+| Rows are dicts; typos in keys fail at runtime | Rows are typed objects: `employee.hire_date` |
+| Five-table joins written manually every time | Relationships: `employee.department.name`, `employee.manager.first_name` |
+| The self-join for managers needs aliases (`e`, `m`) | `manager` and `direct_reports` relationships on one class |
 | `cursor`, `commit`, `rollback`, `close` everywhere | The session manages the unit of work |
-| Building `WHERE` lists and parameter lists by hand | Chainable `.where()` calls |
 | Switching databases means rewriting SQL | Dialects handle MySQL, PostgreSQL, SQLite |
 
 You'll keep the same driver: SQLAlchemy will talk to MySQL **through `mysql-connector-python`**.
@@ -454,113 +595,107 @@ You'll keep the same driver: SQLAlchemy will talk to MySQL **through `mysql-conn
 |---------|-----------------|-----|
 | MySQL not running or wrong host/port | `mysql.connector.errors.DatabaseError: 2003 (HY000): Can't connect to MySQL server` | Start MySQL; check `DB_HOST` / `DB_PORT` |
 | Wrong password | `ProgrammingError: 1045 (28000): Access denied for user 'root'@'localhost'` | Check `DB_PASSWORD` |
+| `acmehr.sql` not loaded | `ProgrammingError: 1049 (42000): Unknown database 'acmehr'` | Run the script first |
 | Forgetting `conn.commit()` | `201` returned but the row isn't in MySQL | Commit after writes |
 | Not returning connections to the pool | `PoolError: Failed getting connection; pool exhausted` | `conn.close()` in a `finally` (the dependency does it) |
+| `JOIN employees m` instead of `LEFT JOIN` | The CEO disappears from the directory | `LEFT JOIN` for optional relationships |
 | f-string with user values in SQL | SQL injection | `%s` placeholders + params |
-| Putting `ORDER BY %s` | The sort is ignored (it sorts by a constant string) | Allow-list dictionary of column names |
-| `(product_id)` instead of `(product_id,)` | `ProgrammingError` / wrong parameters | One-item tuple needs a comma |
-| `cursor()` without `dictionary=True` | Rows are tuples; `response_model` fails | `conn.cursor(dictionary=True)` |
+| `(code)` instead of `(code,)` | `ProgrammingError` / wrong parameters | One-item tuple needs a comma |
 
 ## Practice Exercises
 
-Use a fresh `ksr_shop`.
+Reload a fresh `acmehr` before you start.
 
 **Easy**
 
-1. Add `GET /categories` that returns each category with its product count (use `LEFT JOIN` + `GROUP BY`).
-2. Add a `brand` filter to `GET /products`.
-3. Add `GET /customers/{customer_id}` returning id, name, email and city, with a 404 for unknown ids.
+1. Add `GET /departments` that returns each department with its parent's name and its headcount (`LEFT JOIN` + `GROUP BY`, or the subquery from `get_department`).
+2. Add a `designation` filter to `GET /employees`.
+3. Add `GET /holidays?year=2026` returning each holiday's date and name, ordered by date.
 
 **Medium**
 
-4. Add `PATCH /products/{product_id}/stock` with a body `{"change": n}` that adds or removes stock, returns 404 for unknown products, and refuses to go below zero (400).
-5. Add `GET /customers/{customer_id}/orders` that returns each order with its total. Write one SQL query with `JOIN` and `GROUP BY`.
-6. Add `POST /categories` and return 409 when the name already exists (MySQL error `1062` from the `UNIQUE` constraint).
+4. Add `GET /employees/{code}/team` that returns the manager's **direct reports** (code, name, designation). Who reports to Karthik (E-1002)?
+5. Add `GET /employees/{code}/leave-requests?status=pending` that returns that employee's requests with the leave type's name, newest first.
+6. Add `PATCH /employees/{code}/phone` with a body `{"phone": "..."}` (Indian mobile pattern) that updates the phone and returns 404 for unknown codes. Check `cursor.rowcount` to know whether a row was updated.
 
 **Challenge**
 
-7. Add `POST /orders` that places an order as **one transaction**: `SELECT ... FOR UPDATE` on the products, check stock, insert into `orders` and `order_items`, reduce stock, then `commit()`, or `rollback()` on any problem. (Lesson 08 builds the same flow with SQLAlchemy, so you'll be able to compare both versions.)
+7. Add `GET /employees/{code}/manager-chain` that returns the chain of managers up to the CEO, using MySQL 8's **recursive CTE** (`WITH RECURSIVE`) in a single query. Arjun's (E-1043) chain should be Swati → Karthik → Lakshmi.
 
 ??? success "Solutions (click to expand)"
 
     ```{ .python .no-run }
     # 1  repository.py
-    def list_categories(conn):
+    def list_departments(conn):
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
-            SELECT c.id, c.name, COUNT(p.id) AS product_count
-            FROM categories c LEFT JOIN products p ON p.category_id = c.id
-            GROUP BY c.id, c.name ORDER BY c.name
+            SELECT d.id, d.name, p.name AS parent, COUNT(e.id) AS headcount
+            FROM departments d
+            LEFT JOIN departments p ON p.id = d.parent_id
+            LEFT JOIN employees e ON e.department_id = d.id AND e.status <> 'exited'
+            GROUP BY d.id, d.name, p.name ORDER BY d.name
         """)
         rows = cursor.fetchall()
         cursor.close()
         return rows
 
-    # 2  in list_products
-    if brand:
-        conditions.append("p.brand = %s")
-        params.append(brand)
+    # 2  in list_employees
+    if designation:
+        conditions.append("g.title = %s")
+        params.append(designation)
 
-    # 4  main.py
-    class StockChange(BaseModel):
-        change: int
-
-    @app.patch("/products/{product_id}/stock", response_model=ProductOut)
-    def change_stock(product_id: int, body: StockChange, conn: Conn):
-        product = repository.get_product(conn, product_id)
-        if product is None:
-            raise HTTPException(status_code=404, detail="Product not found")
-        if product["stock"] + body.change < 0:
-            raise HTTPException(status_code=400, detail="Stock cannot go below zero")
-        cursor = conn.cursor()
-        cursor.execute("UPDATE products SET stock = stock + %s WHERE id = %s", (body.change, product_id))
-        conn.commit()
-        cursor.close()
-        return repository.get_product(conn, product_id)
-
-    # 5  repository.py
-    def customer_orders(conn, customer_id):
+    # 4  repository.py
+    def get_team(conn, code):
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
-            SELECT o.id, o.order_date, o.status, SUM(oi.quantity * oi.unit_price) AS total
-            FROM orders o JOIN order_items oi ON oi.order_id = o.id
-            WHERE o.customer_id = %s
-            GROUP BY o.id, o.order_date, o.status ORDER BY o.order_date
-        """, (customer_id,))
+            SELECT e.employee_code AS code, CONCAT(e.first_name, ' ', e.last_name) AS name, g.title AS designation
+            FROM employees e
+            JOIN employees m ON m.id = e.manager_id
+            JOIN designations g ON g.id = e.designation_id
+            WHERE m.employee_code = %s AND e.status <> 'exited'
+            ORDER BY e.first_name
+        """, (code,))
         rows = cursor.fetchall()
         cursor.close()
         return rows
+    # Karthik: Ananya, Kavya, Priya, Rohan, Sneha, Swati, Vikram
 
-    # 7  (core of the transaction)
-    def place_order(conn, customer_id, items):
+    # 6  main.py
+    class PhoneUpdate(BaseModel):
+        phone: str = Field(pattern=r"^[6-9]\d{9}$")
+
+    @app.patch("/employees/{code}/phone", response_model=EmployeeOut)
+    def update_phone(code: EmployeeCode, body: PhoneUpdate, conn: Conn):
+        cursor = conn.cursor()
+        cursor.execute("UPDATE employees SET phone = %s WHERE employee_code = %s", (body.phone, code))
+        conn.commit()
+        updated = cursor.rowcount
+        cursor.close()
+        if updated == 0 and repository.get_employee(conn, code) is None:
+            raise HTTPException(status_code=404, detail=f"Employee {code} not found")
+        return repository.get_employee(conn, code)
+
+    # 7  repository.py
+    def manager_chain(conn, code):
         cursor = conn.cursor(dictionary=True)
-        try:
-            ids = [i.product_id for i in items]
-            placeholders = ", ".join(["%s"] * len(ids))
-            cursor.execute(f"SELECT id, name, price, stock FROM products WHERE id IN ({placeholders}) FOR UPDATE", ids)
-            products = {row["id"]: row for row in cursor.fetchall()}
-            for item in items:
-                p = products.get(item.product_id)
-                if p is None or p["stock"] < item.quantity:
-                    raise ValueError(f"Not enough stock for product {item.product_id}")
-            cursor.execute("INSERT INTO orders (customer_id, order_date, status) VALUES (%s, CURDATE(), 'pending')",
-                           (customer_id,))
-            order_id = cursor.lastrowid
-            for item in items:
-                cursor.execute("INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (%s, %s, %s, %s)",
-                               (order_id, item.product_id, item.quantity, products[item.product_id]["price"]))
-                cursor.execute("UPDATE products SET stock = stock - %s WHERE id = %s", (item.quantity, item.product_id))
-            conn.commit()
-            return order_id
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            cursor.close()
+        cursor.execute("""
+            WITH RECURSIVE chain AS (
+                SELECT id, manager_id, employee_code, first_name, last_name, 0 AS level
+                FROM employees WHERE employee_code = %s
+                UNION ALL
+                SELECT m.id, m.manager_id, m.employee_code, m.first_name, m.last_name, c.level + 1
+                FROM employees m JOIN chain c ON m.id = c.manager_id
+            )
+            SELECT level, employee_code AS code, CONCAT(first_name, ' ', last_name) AS name
+            FROM chain WHERE level > 0 ORDER BY level
+        """, (code,))
+        rows = cursor.fetchall()
+        cursor.close()
+        return rows
     ```
 
 !!! note "Mini Assignment"
-    Connect your **KSR Shop API** to MySQL with `mysql-connector-python`: add `app/db.py` with a pool and the `get_connection` dependency, `app/repository.py` with parameterised SQL, and convert the products, categories and customers **read** endpoints plus `POST /products` to the database. Keep a list in your README of every SQL statement your API runs. It will be a useful comparison after the next lesson.
+    Connect your **AcmeHR API** to MySQL with `mysql-connector-python`: add `app/db.py` with a pool and the `get_connection` dependency, `app/repository.py` with parameterised SQL, and convert the employee directory, profile, team and leave-balance **read** endpoints plus `POST /departments` to the database. Keep a list in your README of every SQL statement your API runs. It will be a useful comparison after the next lesson.
 
 ## Interview Questions
 
@@ -573,8 +708,8 @@ Use a fresh `ksr_shop`.
 !!! interview "3. How do you prevent SQL injection when building dynamic queries?"
     Pass every user-supplied value as a bound parameter (`%s` with a params list), never via string formatting. Build dynamic structure (which WHERE conditions to include) only from fixed SQL fragments you wrote. For identifiers like sort columns, map user choices through an allow-list.
 
-!!! interview "4. Why can't `ORDER BY` use a `%s` placeholder?"
-    Placeholders bind values, not SQL identifiers or keywords. `ORDER BY %s` would sort by a constant string literal, so the order wouldn't change. Column names must be part of the SQL text, chosen from an allow-list.
+!!! interview "4. How do you model and query an employee's manager in SQL?"
+    With a self-referencing foreign key: `employees.manager_id REFERENCES employees(id)`. To show the manager's name, join the table to itself with two aliases (`employees e LEFT JOIN employees m ON m.id = e.manager_id`), using a `LEFT JOIN` so the top of the hierarchy (no manager) isn't dropped. For a whole chain or org tree, use a recursive CTE.
 
 !!! interview "5. How do you turn MySQL errors into meaningful HTTP responses?"
     Catch `mysql.connector.Error` and inspect `errno`: for example 1452 (foreign key fails) → 400 Bad Request, 1062 (duplicate entry) → 409 Conflict. Roll back the transaction first, keep the message user-friendly, and re-raise anything unexpected so it's logged as a 500.
@@ -586,11 +721,13 @@ Use a fresh `ksr_shop`.
 
 | Concept | Code |
 |---------|------|
+| Load the data | `mysql -u root -p < acmehr.sql` (safe to re-run) |
 | Install | `pip install mysql-connector-python` |
 | Pool | `pooling.MySQLConnectionPool(pool_name=..., pool_size=5, host=..., user=..., password=..., database=...)` |
 | Dependency | `conn = pool.get_connection()` → `yield conn` → `conn.close()` in `finally` |
 | Use it | `conn: Annotated[PooledMySQLConnection, Depends(get_connection)]` |
 | Query | `cursor = conn.cursor(dictionary=True)` → `cursor.execute(sql, params)` → `fetchone()` / `fetchall()` |
+| Self-join | `employees e LEFT JOIN employees m ON m.id = e.manager_id` |
 | Write | `execute(...)` → `conn.commit()`; `rollback()` on error; `cursor.lastrowid` |
 | Safety | `%s` for every value; allow-list for `ORDER BY` |
 | Errors | `mysql.connector.Error` → `e.errno`: 1452 → 400, 1062 → 409 |

@@ -51,8 +51,8 @@ Your step-by-step path from writing your first line of Python to shipping a full
 <div class="rm-node">04</div>
 <div class="rm-card" markdown>
 <div class="rm-head" markdown><span class="rm-icon" markdown>:material-lightning-bolt:</span><div><span class="rm-phase">Phase 4 · Backend</span><span class="rm-title">FastAPI</span></div></div>
-<p class="rm-desc">Build fast, modern REST APIs with automatic validation and interactive docs.</p>
-<div class="rm-tags"><span>REST basics</span><span>Pydantic</span><span>MySQL + SQLAlchemy</span><span>JWT auth</span><span>Swagger docs</span></div>
+<p class="rm-desc">Build the AcmeHR employee management API from a business requirements document, with automatic validation and interactive docs.</p>
+<div class="rm-tags"><span>REST basics</span><span>Pydantic</span><span>MySQL + SQLAlchemy</span><span>JWT &amp; roles</span><span>pytest</span></div>
 <a class="rm-status rm-live" href="../../python/fastapi/">Start learning →</a>
 </div>
 </div>

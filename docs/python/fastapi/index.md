@@ -5,16 +5,18 @@ hide:
 
 # FastAPI
 
-Build production-style REST APIs in Python, from your first endpoint to a tested, secured, Dockerised backend for the KSR online store, running on the same `ksr_shop` MySQL database you designed in the MySQL module.
+Build production-style REST APIs in Python, from your first endpoint to a tested, secured, Dockerised backend for **AcmeHR**, an employee management system for a 20-person company with offices in Hyderabad, Bengaluru and Pune. Every feature comes from a real-style **Business Requirements Document**: the employee directory and profiles, departments and reporting lines, leave applications with manager approval, attendance, an HR dashboard, documents, and role-based access for employees, managers and HR.
+
+[:material-download: Download acmehr.sql](../../assets/sql/acmehr.sql){ .md-button .md-button--primary download }
 
 !!! abstract "By the end of this module, you can"
     - Design REST endpoints with path, query and body parameters validated by Pydantic
     - Structure a real project into routers, schemas, services and repositories
-    - Query MySQL with `mysql-connector-python` and raw SQL, then with SQLAlchemy 2.0, including transactional order placement
-    - Secure an API with JWT and roles, test it with pytest, and deploy it with Docker
+    - Query MySQL with `mysql-connector-python` and raw SQL, then with SQLAlchemy 2.0, including self-referencing manager relationships and transactional leave approvals
+    - Secure an API with JWT, roles and "only your own team" rules, test it with pytest, and deploy it with Docker
 
 !!! tip "Every response in this module is real"
-    Each lesson's code was run with FastAPI 0.162, and every response shown came from calling the running API with `curl`. The database lessons ran against MySQL 8.4 loaded with [ksr_shop.sql](../../assets/sql/ksr_shop.sql).
+    Each lesson's code was run with FastAPI 0.162, and every response shown came from calling the running API with `curl`. The database lessons ran against MySQL 8.4 loaded with [acmehr.sql](../../assets/sql/acmehr.sql), whose sample data matches the BRD's wireframes (Ananya Rao, E-1042, and the attendance for Monday 5 October 2026).
 
 <div class="grid cards ksr-topics" markdown>
 
