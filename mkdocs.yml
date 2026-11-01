@@ -57,10 +57,10 @@ extra:
       name: +91 99169 61234
 
 extra_css:
-  - stylesheets/extra.css?v=20261031b
+  - stylesheets/extra.css?v=20261101a
 
 extra_javascript:
-  - javascripts/ksr.js?v=20261031b
+  - javascripts/ksr.js?v=20261101a
 
 plugins:
   - search
@@ -174,7 +174,31 @@ nav:
           - Testing Django: python/django/10-testing-django.md
           - Security, Deployment & Capstone: python/django/11-security-deployment-capstone.md
   - Java: java/index.md
-  - Frontend: frontend/index.md
+  - Frontend:
+      - frontend/index.md
+      - HTML:
+          - How the Web Works & Your First Page: frontend/html/01-how-the-web-works.md
+          - Semantic Structure, Tables & Media: frontend/html/02-semantic-structure-tables-media.md
+          - Forms: frontend/html/03-forms.md
+      - CSS:
+          - CSS Basics: frontend/css/01-css-basics.md
+          - Box Model, Display & Positioning: frontend/css/02-box-model-display-positioning.md
+          - Flexbox: frontend/css/03-flexbox.md
+          - CSS Grid: frontend/css/04-grid.md
+          - Responsive Design & CSS Variables: frontend/css/05-responsive-design-variables.md
+          - Forms, Tables, Effects & Project: frontend/css/06-forms-tables-effects-project.md
+      - JavaScript:
+          - Introduction, Variables & Data Types: frontend/javascript/01-introduction-variables-data-types.md
+          - Conditions & Loops: frontend/javascript/02-conditions-loops.md
+          - Functions & Scope: frontend/javascript/03-functions-scope.md
+          - Arrays & Array Methods: frontend/javascript/04-arrays.md
+          - Objects, Destructuring & JSON: frontend/javascript/05-objects-json.md
+          - The DOM: frontend/javascript/06-dom.md
+          - Events & Forms: frontend/javascript/07-events-forms.md
+          - localStorage & the Shopping Cart: frontend/javascript/08-local-storage-cart.md
+          - Asynchronous JavaScript: frontend/javascript/09-async-javascript.md
+          - Fetch & APIs: frontend/javascript/10-fetch-apis.md
+          - Modules, Classes, Errors & Capstone: frontend/javascript/11-modules-classes-errors-capstone.md
   - Database:
       - database/index.md
       - MySQL:

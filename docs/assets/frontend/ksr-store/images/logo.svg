@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="40" viewBox="0 0 160 40" role="img" aria-label="KSR Store">
+  <style>
+    .name { fill: #1b2033; }
+    @media (prefers-color-scheme: dark) { .name { fill: #f5f6fa; } }
+  </style>
+  <rect width="40" height="40" rx="10" fill="#2447d4"/>
+  <path d="M12 12h16l-2 12H14z" fill="none" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="16" cy="30" r="2.5" fill="#ffffff"/><circle cx="25" cy="30" r="2.5" fill="#ffffff"/>
+  <text class="name" x="50" y="27" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">KSR Store</text>
+</svg>

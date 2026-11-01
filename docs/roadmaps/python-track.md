@@ -71,7 +71,7 @@ Your step-by-step path from writing your first line of Python to shipping a full
 <div class="rm-head" markdown><span class="rm-icon" markdown>:material-language-html5:</span><div><span class="rm-phase">Phase 6 · Frontend</span><span class="rm-title">HTML, CSS &amp; JavaScript</span></div></div>
 <p class="rm-desc">Create responsive pages users see and interact with.</p>
 <div class="rm-tags"><span>Semantic HTML</span><span>Flexbox &amp; Grid</span><span>Responsive design</span><span>DOM</span><span>Fetch API</span></div>
-<span class="rm-status">Coming soon</span>
+<a class="rm-status rm-live" href="../../frontend/">Start learning →</a>
 </div>
 </div>
 <div class="rm-step" id="step-7" style="--c:#0284c7" markdown>

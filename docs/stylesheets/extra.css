@@ -700,3 +700,14 @@
   border-radius: var(--ksr-radius);
   background: var(--ksr-soft);
 }
+
+/* Real screenshots in the frontend lessons */
+.md-typeset img.ksr-shot {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1em 0 1.4em;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgb(17 24 39 / 8%);
+}
