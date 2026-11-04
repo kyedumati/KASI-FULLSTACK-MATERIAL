@@ -4,7 +4,7 @@ category: FastAPI
 short: SQLAlchemy
 api_app: app.main:app
 api_db: true
-description: Connecting the AcmeHR API to MySQL with SQLAlchemy 2.0 — engine, sessions, ORM models for the acmehr tables, self-referencing relationships (managers and teams, departments and sub-departments), the N+1 problem, and aggregate reports.
+description: Connecting the AcmeHR API to MySQL with SQLAlchemy 2.0 — engine and connection pool settings, sessions, ORM models for four acmehr tables, self-referencing relationships (managers and teams, departments and sub-departments), the N+1 problem, and aggregate reports.
 ---
 
 # SQLAlchemy & MySQL
@@ -14,6 +14,7 @@ description: Connecting the AcmeHR API to MySQL with SQLAlchemy 2.0 — engine, 
 
     - Explain what an ORM is and how SQLAlchemy maps tables to Python classes
     - Connect FastAPI to MySQL with an engine, sessions and a `get_db` dependency
+    - Configure the connection pool (`pool_size`, `max_overflow`, `pool_timeout`, `pool_recycle`, `pool_pre_ping`) and size it for production
     - Model **self-referencing** relationships: an employee's manager and direct reports, a department's sub-departments
     - Write SQLAlchemy 2.0 `select()` queries with filters, joins, grouping and eager loading, and spot the N+1 problem
     - Return ORM objects through nested Pydantic response models with `from_attributes`
@@ -62,7 +63,14 @@ DATABASE_URL = os.environ.get(
     "DATABASE_URL", "mysql+mysqlconnector://root:password@localhost:3306/acmehr"
 )
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+engine = create_engine(
+    DATABASE_URL,
+    pool_size=5,            # connections kept open and ready
+    max_overflow=10,        # extra connections allowed during a burst
+    pool_timeout=30,        # seconds a request waits for a free connection
+    pool_recycle=1800,      # replace connections older than 30 minutes
+    pool_pre_ping=True,     # check a connection is alive before handing it out
+)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
 
@@ -81,8 +89,7 @@ def get_db() -> Generator[Session, None, None]:
 | Piece | What it is |
 |-------|-----------|
 | `DATABASE_URL` | `dialect+driver://user:password@host:port/database`, read from an environment variable |
-| `engine` | Manages a **pool** of connections to MySQL, created once for the whole app |
-| `pool_pre_ping=True` | Checks a connection is alive before using it (avoids "MySQL server has gone away") |
+| `engine` | Created once for the whole app; it owns the **connection pool** (next section) and knows how to speak MySQL |
 | `SessionLocal` | A factory for **sessions**: a unit of work that tracks the objects you load and change |
 | `Base` | Parent class for all ORM models |
 | `get_db()` | A **dependency**: opens a session per request and always closes it afterwards |
@@ -104,45 +111,106 @@ Set the URL for your machine before starting the server:
 !!! warning "Special characters in the password"
     If your MySQL password contains `@`, `#`, `/` or `:`, URL-encode it: `@` becomes `%40` and `#` becomes `%23`. For example `Pass@123` becomes `Pass%40123` in the URL. In [lesson 09](09-dependencies-and-settings.md) you'll move all of this into a `.env` file.
 
+## The Connection Pool
+
+Opening a MySQL connection is slow: a network handshake, a login and a few setup queries, often 20–50 ms. An API that opened a new connection for every request would spend more time connecting than working. In lesson 06 you created a pool by hand with `MySQLConnectionPool(pool_size=5)`. SQLAlchemy's engine **always** has one (a `QueuePool`), and the five settings in `create_engine` control how it behaves.
+
+!!! example "Real-life analogy: the office cab pool, again"
+    Acme keeps **5 cabs** waiting in the parking lot (`pool_size`). On a busy morning it may call up to **10 more** from an agency (`max_overflow`), which go back to the agency once the rush is over. If all 15 are out, the next person waits at the gate for up to **30 seconds** (`pool_timeout`) before giving up. Every cab is swapped for a fresh one after **30 minutes** on the road (`pool_recycle`), and the driver checks the engine starts before you get in (`pool_pre_ping`).
+
+```mermaid
+flowchart LR
+  R1["request 1"] --> P
+  R2["request 2"] --> P
+  R3["request …"] --> P
+  P["Pool<br/>5 kept open<br/>+ up to 10 overflow"] --> M[("MySQL<br/>max_connections")]
+  P -. "all 15 busy:<br/>wait up to 30 s,<br/>then TimeoutError" .-> R3
+```
+
+| Setting | Default | What it does | How to choose |
+|---------|---------|--------------|---------------|
+| `pool_size` | 5 | Connections kept open between requests | Roughly the number of requests one worker handles at the same time |
+| `max_overflow` | 10 | Extra connections opened during a burst, closed again when returned | Headroom for spikes (09:00 check-ins); `0` makes `pool_size` a hard limit |
+| `pool_timeout` | 30 | Seconds a request waits for a free connection before `TimeoutError` | Lower (5–10 s) so users get a fast error instead of a hanging page |
+| `pool_recycle` | -1 (never) | Replace connections older than this many seconds | Below MySQL's `wait_timeout` (8 hours by default) or your cloud proxy's idle limit |
+| `pool_pre_ping` | False | Runs a cheap check before handing out a connection | `True` in production: avoids "MySQL server has gone away" after a database restart |
+
+The pool belongs to **one process**. When you run 4 workers in production (lesson 13), each has its own pool, so the API can open up to `workers × (pool_size + max_overflow)` connections. That number must stay below MySQL's limit:
+
+```python
+from sqlalchemy import text
+from app.database import engine
+
+with engine.connect() as conn:
+    print(conn.execute(text("SHOW VARIABLES LIKE 'max_connections'")).one())
+
+workers, pool_size, max_overflow = 4, 5, 10
+print("worst case:", workers * (pool_size + max_overflow), "connections")
+```
+
+```{ .text .output }
+('max_connections', '151')
+worst case: 60 connections
+```
+
+60 is comfortably below 151. With 12 workers it would be 180, and MySQL would start refusing connections with `Too many connections`.
+
+### Watching the pool fill up
+
+A tiny pool makes the behaviour visible: 2 connections plus 1 overflow, and a 2-second timeout:
+
+```python
+import os
+from sqlalchemy import create_engine
+from sqlalchemy.exc import TimeoutError
+
+small = create_engine(os.environ["DATABASE_URL"], pool_size=2, max_overflow=1, pool_timeout=2)
+
+held = [small.connect() for _ in range(3)]          # 2 from the pool + 1 overflow
+print(small.pool.status())
+try:
+    small.connect()                                  # a 4th request has to wait...
+except TimeoutError as e:
+    print("4th connection:", str(e).split(",")[0])
+
+for conn in held:
+    conn.close()                                     # back to the pool
+print(small.pool.status())
+```
+
+```{ .text .output }
+Pool size: 2  Connections in pool: 0 Current Overflow: 1 Current Checked out connections: 3
+4th connection: QueuePool limit of size 2 overflow 1 reached
+Pool size: 2  Connections in pool: 2 Current Overflow: 0 Current Checked out connections: 0
+```
+
+Three connections were handed out (the third as overflow). The fourth waited 2 seconds and gave up. After `close()`, the two regular connections went back into the pool, ready for the next request, and the overflow connection was closed. In the API, `get_db`'s `finally: db.close()` is what returns the connection: forget it and the pool slowly empties until every request times out.
+
+!!! realworld "In Real Projects"
+    "QueuePool limit of size 5 overflow 10 reached, connection timed out" in production logs almost always means connections are being **held too long** (a slow query, or calling an external API while a session is open), not that the pool is too small. Fix the leak first; raise `pool_size` only after measuring.
+
 ## ORM Models
 
-Models describe the **existing** acmehr tables. SQLAlchemy 2.0 uses type hints with `Mapped[...]` and `mapped_column(...)`:
+The acmehr database has 12 tables, but you don't have to map them all at once. This lesson maps the **4 tables** it needs; lesson 08 adds the leave tables the same way.
+
+```mermaid
+erDiagram
+  departments ||--o{ employees : "belongs to"
+  departments ||--o{ departments : "parent of"
+  employees ||--o{ employees : "manages"
+  shifts ||--o{ employees : "works"
+  employees ||--o{ attendance : "checks in"
+```
+
+SQLAlchemy 2.0 uses type hints with `Mapped[...]` and `mapped_column(...)`:
 
 ```python title="app/models.py"
-from datetime import date, datetime, time
-from decimal import Decimal
+from datetime import date, time
 
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
-
-
-class Location(Base):
-    __tablename__ = "locations"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(60))
-    city: Mapped[str] = mapped_column(String(60))
-    region: Mapped[str] = mapped_column(String(30))
-
-
-class Designation(Base):
-    __tablename__ = "designations"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column(String(60), unique=True)
-    level: Mapped[int]
-
-
-class Shift(Base):
-    __tablename__ = "shifts"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(30), unique=True)
-    start_time: Mapped[time]
-    end_time: Mapped[time]
-    grace_minutes: Mapped[int]
 
 
 class Department(Base):
@@ -152,13 +220,21 @@ class Department(Base):
     name: Mapped[str] = mapped_column(String(60), unique=True)
     parent_id: Mapped[int | None] = mapped_column(ForeignKey("departments.id"))
     head_id: Mapped[int | None] = mapped_column(ForeignKey("employees.id"))
-    is_active: Mapped[bool] = mapped_column(default=True)
 
     parent: Mapped["Department | None"] = relationship(remote_side=[id], back_populates="sub_departments")
     sub_departments: Mapped[list["Department"]] = relationship(back_populates="parent")
     head: Mapped["Employee | None"] = relationship(foreign_keys=[head_id])
     employees: Mapped[list["Employee"]] = relationship(foreign_keys="Employee.department_id",
                                                        back_populates="department")
+
+
+class Shift(Base):
+    __tablename__ = "shifts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(30), unique=True)
+    start_time: Mapped[time]
+    grace_minutes: Mapped[int]
 
 
 class Employee(Base):
@@ -169,24 +245,14 @@ class Employee(Base):
     first_name: Mapped[str] = mapped_column(String(50))
     last_name: Mapped[str] = mapped_column(String(50))
     email: Mapped[str] = mapped_column(String(120), unique=True)
-    phone: Mapped[str] = mapped_column(String(15))
     gender: Mapped[str] = mapped_column(String(10))
-    date_of_birth: Mapped[date]
     hire_date: Mapped[date]
+    status: Mapped[str] = mapped_column(String(10))
     department_id: Mapped[int] = mapped_column(ForeignKey("departments.id"))
-    designation_id: Mapped[int] = mapped_column(ForeignKey("designations.id"))
-    location_id: Mapped[int] = mapped_column(ForeignKey("locations.id"))
     manager_id: Mapped[int | None] = mapped_column(ForeignKey("employees.id"))
     shift_id: Mapped[int] = mapped_column(ForeignKey("shifts.id"))
-    status: Mapped[str] = mapped_column(String(10), default="active")
-    role: Mapped[str] = mapped_column(String(10), default="employee")
-    emergency_contact_name: Mapped[str] = mapped_column(String(100))
-    emergency_contact_relation: Mapped[str] = mapped_column(String(30))
-    emergency_contact_phone: Mapped[str] = mapped_column(String(15))
 
     department: Mapped[Department] = relationship(foreign_keys=[department_id], back_populates="employees")
-    designation: Mapped[Designation] = relationship()
-    location: Mapped[Location] = relationship()
     shift: Mapped[Shift] = relationship()
     manager: Mapped["Employee | None"] = relationship(remote_side=[id], back_populates="direct_reports")
     direct_reports: Mapped[list["Employee"]] = relationship(back_populates="manager")
@@ -194,58 +260,6 @@ class Employee(Base):
     @property
     def full_name(self) -> str:
         return f"{self.first_name} {self.last_name}"
-
-
-class LeaveType(Base):
-    __tablename__ = "leave_types"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    code: Mapped[str] = mapped_column(String(5), unique=True)
-    name: Mapped[str] = mapped_column(String(40))
-    days_per_year: Mapped[int | None]
-    carry_forward: Mapped[bool]
-    is_paid: Mapped[bool]
-
-
-class Holiday(Base):
-    __tablename__ = "holidays"
-
-    holiday_date: Mapped[date] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(60))
-
-
-class LeaveRequest(Base):
-    __tablename__ = "leave_requests"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id"))
-    leave_type_id: Mapped[int] = mapped_column(ForeignKey("leave_types.id"))
-    start_date: Mapped[date]
-    end_date: Mapped[date]
-    duration: Mapped[str] = mapped_column(String(12), default="full")
-    days: Mapped[Decimal]
-    reason: Mapped[str] = mapped_column(String(255))
-    status: Mapped[str] = mapped_column(String(10), default="pending")
-    approver_id: Mapped[int | None] = mapped_column(ForeignKey("employees.id"))
-    decision_note: Mapped[str | None] = mapped_column(String(255))
-    applied_at: Mapped[datetime]
-    decided_at: Mapped[datetime | None]
-
-    employee: Mapped[Employee] = relationship(foreign_keys=[employee_id])
-    approver: Mapped[Employee | None] = relationship(foreign_keys=[approver_id])
-    leave_type: Mapped[LeaveType] = relationship()
-
-
-class LeaveBalance(Base):
-    __tablename__ = "leave_balances"
-
-    employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id"), primary_key=True)
-    leave_type_id: Mapped[int] = mapped_column(ForeignKey("leave_types.id"), primary_key=True)
-    year: Mapped[int] = mapped_column(primary_key=True)
-    allocated: Mapped[Decimal]
-    used: Mapped[Decimal] = mapped_column(default=0)
-
-    leave_type: Mapped[LeaveType] = relationship()
 
 
 class Attendance(Base):
@@ -256,7 +270,6 @@ class Attendance(Base):
     work_date: Mapped[date]
     check_in: Mapped[time]
     check_out: Mapped[time | None]
-    source: Mapped[str] = mapped_column(String(10))
 
     employee: Mapped[Employee] = relationship()
 ```
@@ -266,9 +279,10 @@ class Attendance(Base):
 | `__tablename__ = "employees"` | The MySQL table this class maps to |
 | `Mapped[int]` | Column type; `Mapped[str \| None]` means the column is nullable |
 | `mapped_column(primary_key=True)` | Column options: PK, `ForeignKey`, `String(100)`, `unique`, `default` |
-| `Decimal` | Exact numbers for MySQL `DECIMAL`: 0.5 leave days stay exactly 0.5 |
 | `relationship(back_populates=...)` | Navigation between objects: `employee.department`, `department.employees` |
 | `@property full_name` | A normal Python property; Pydantic can read it like a column |
+
+Notice that `Employee` maps only 11 of the table's 20 columns. That's allowed: SQLAlchemy reads and writes only what you map. Add the phone, date of birth and the rest when an endpoint needs them.
 
 ### Self-referencing relationships
 
@@ -283,13 +297,13 @@ direct_reports: Mapped[list["Employee"]] = relationship(back_populates="manager"
 
 Both sides use the same foreign key, so SQLAlchemy needs a hint about which side is the "one": `remote_side=[id]` says *"for `manager`, the employee on the other end is matched by **its** `id`"*. The result is an org chart you can walk with plain attributes: `arjun.manager.manager.full_name` is `"Karthik Menon"`. Departments use the same trick for sub-departments.
 
-### Several paths between two tables
+### Two paths between two tables
 
-`leave_requests` has **two** foreign keys to `employees` (who applied and who approved), and `departments` and `employees` point at each other (an employee's department, a department's head). When there's more than one path, SQLAlchemy can't guess which one a relationship should use, and stops with an `AmbiguousForeignKeysError`. `foreign_keys=[...]` tells it:
+`departments` and `employees` point at each other: an employee's `department_id`, and a department's `head_id`. When there's more than one path, SQLAlchemy can't guess which one a relationship should use, and stops with an `AmbiguousForeignKeysError`. `foreign_keys=[...]` tells it:
 
 ```{ .python .no-run }
-employee: Mapped[Employee] = relationship(foreign_keys=[employee_id])
-approver: Mapped[Employee | None] = relationship(foreign_keys=[approver_id])
+head: Mapped["Employee | None"] = relationship(foreign_keys=[head_id])                  # departments.head_id
+department: Mapped[Department] = relationship(foreign_keys=[department_id], ...)        # employees.department_id
 ```
 
 !!! info "Existing tables vs creating tables"
@@ -300,7 +314,7 @@ approver: Mapped[Employee | None] = relationship(foreign_keys=[approver_id])
 Pydantic needs `from_attributes=True` to read data from **object attributes** (`employee.hire_date`) instead of dict keys:
 
 ```python title="app/schemas.py"
-from datetime import date
+from datetime import date, time
 
 from pydantic import BaseModel, ConfigDict
 
@@ -319,14 +333,9 @@ class DepartmentBrief(ORMModel):
     name: str
 
 
-class DesignationOut(ORMModel):
-    title: str
-    level: int
-
-
-class LocationOut(ORMModel):
+class ShiftOut(ORMModel):
     name: str
-    city: str
+    start_time: time
 
 
 class EmployeeOut(ORMModel):
@@ -336,13 +345,12 @@ class EmployeeOut(ORMModel):
     hire_date: date
     status: str
     department: DepartmentBrief
-    designation: DesignationOut
-    location: LocationOut
+    shift: ShiftOut
     manager: EmployeeBrief | None
 
 
 class TeamMember(EmployeeBrief):
-    designation: DesignationOut
+    department: DepartmentBrief
 
 
 class TeamOut(ORMModel):
@@ -370,15 +378,14 @@ from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from app.models import Attendance, Department, Designation, Employee, Holiday, LeaveRequest, Location
+from app.models import Attendance, Department, Employee
 
 
 def get_employee(db: Session, code: str) -> Employee:
     stmt = (
         select(Employee)
         .where(Employee.employee_code == code)
-        .options(joinedload(Employee.department), joinedload(Employee.designation),
-                 joinedload(Employee.location), joinedload(Employee.manager))
+        .options(joinedload(Employee.department), joinedload(Employee.shift), joinedload(Employee.manager))
     )
     employee = db.scalars(stmt).first()
     if employee is None:
@@ -391,7 +398,7 @@ def get_team(db: Session, code: str) -> dict:
     stmt = (
         select(Employee)
         .where(Employee.manager_id == manager.id, Employee.status != "exited")
-        .options(joinedload(Employee.designation))
+        .options(joinedload(Employee.department))
         .order_by(Employee.first_name)
     )
     return {"manager": manager, "direct_reports": db.scalars(stmt).all()}
@@ -408,11 +415,11 @@ def list_departments(db: Session) -> list[Department]:
 
 
 def headcount(db: Session, by: str) -> list[dict]:
-    group = {"department": Department.name, "location": Location.city, "designation": Designation.title}[by]
+    group = {"department": Department.name, "gender": Employee.gender}[by]
     stmt = (
         select(group.label("group"), func.count(Employee.id).label("headcount"))
         .select_from(Employee)
-        .join(Employee.department).join(Employee.location).join(Employee.designation)
+        .join(Employee.department)
         .where(Employee.status != "exited")
         .group_by(group)
         .order_by(func.count(Employee.id).desc(), group)
@@ -421,30 +428,25 @@ def headcount(db: Session, by: str) -> list[dict]:
 
 
 def daily_attendance(db: Session, day: date) -> dict:
-    if day.weekday() >= 5 or db.get(Holiday, day):
-        raise HTTPException(status_code=400, detail=f"{day} is not a working day")
+    if day.weekday() >= 5:
+        raise HTTPException(status_code=400, detail=f"{day} is a weekend")
     employees = db.scalars(
         select(Employee).where(Employee.status != "exited", Employee.hire_date <= day)
         .options(joinedload(Employee.shift)).order_by(Employee.employee_code)
     ).all()
     records = {a.employee_id: a for a in db.scalars(select(Attendance).where(Attendance.work_date == day))}
-    on_leave = set(db.scalars(
-        select(LeaveRequest.employee_id)
-        .where(LeaveRequest.status == "approved", LeaveRequest.duration == "full",
-               LeaveRequest.start_date <= day, LeaveRequest.end_date >= day)
-    ))
 
-    late, leave, absent = [], [], []
+    late, missing = [], []
     for e in employees:
         record = records.get(e.id)
         if record is None:
-            (leave if e.id in on_leave else absent).append(e.full_name)
+            missing.append(e.full_name)
             continue
         deadline = datetime.combine(day, e.shift.start_time) + timedelta(minutes=e.shift.grace_minutes)
         if datetime.combine(day, record.check_in) > deadline:
             late.append({"employee": e.full_name, "shift": e.shift.name, "check_in": record.check_in})
     return {"date": day, "employees": len(employees), "present": len(records),
-            "late": late, "on_leave": leave, "absent": absent}
+            "late": late, "not_checked_in": missing}
 ```
 
 (To keep this lesson focused on the database, the "not found" checks raise `HTTPException` directly. In [lesson 08](08-database-crud.md) you'll return to the clean router → service split with domain exceptions.)
@@ -480,7 +482,7 @@ print(stmt)
 ```
 
 ```{ .text .output }
-SELECT employees.id, employees.employee_code, employees.first_name, employees.last_name, employees.email, employees.phone, employees.gender, employees.date_of_birth, employees.hire_date, employees.department_id, employees.designation_id, employees.location_id, employees.manager_id, employees.shift_id, employees.status, employees.role, employees.emergency_contact_name, employees.emergency_contact_relation, employees.emergency_contact_phone 
+SELECT employees.id, employees.employee_code, employees.first_name, employees.last_name, employees.email, employees.gender, employees.hire_date, employees.status, employees.department_id, employees.manager_id, employees.shift_id 
 FROM employees JOIN departments ON departments.id = employees.department_id 
 WHERE departments.name = :name_1 AND employees.status = :status_1 ORDER BY employees.hire_date
  LIMIT :param_1
@@ -522,7 +524,7 @@ def list_departments(db: DB):
 
 
 @router.get("/reports/headcount", tags=["Reports"])
-def headcount(db: DB, by: Literal["department", "location", "designation"] = "department"):
+def headcount(db: DB, by: Literal["department", "gender"] = "department"):
     return services.headcount(db, by)
 
 
@@ -540,7 +542,7 @@ app = FastAPI(title="AcmeHR API", version="2.0")
 app.include_router(router)
 ```
 
-`db: Annotated[Session, Depends(get_db)]` tells FastAPI: *"before calling this function, call `get_db()` and pass in what it yields; after the response, run its `finally` block"*. Every request gets its own session, and it's always closed, even if the endpoint raises an error. We saved that long annotation as `DB` to keep signatures short.
+`db: Annotated[Session, Depends(get_db)]` tells FastAPI: *"before calling this function, call `get_db()` and pass in what it yields; after the response, run its `finally` block"*. Every request gets its own session (and a connection borrowed from the pool), and it's always closed, even if the endpoint raises an error. We saved that long annotation as `DB` to keep signatures short.
 
 ```mermaid
 sequenceDiagram
@@ -553,16 +555,16 @@ sequenceDiagram
   F->>G: open session
   G-->>F: yield db
   F->>E: get_employee("E-1042", db)
-  E->>M: SELECT ... JOIN ... WHERE employee_code = ...
+  E->>M: SELECT ... JOIN ... WHERE employee_code = ...<br/>(on a pooled connection)
   M-->>E: row
   E-->>F: Employee object
-  F->>G: finally: db.close()
+  F->>G: finally: db.close()<br/>(connection back to the pool)
   F-->>C: 200 JSON
 ```
 
 ## Trying the API Against MySQL
 
-Ananya's profile, with her department, designation, location and manager nested inside, straight from acmehr:
+Ananya's profile, with her department, shift and manager nested inside, straight from acmehr:
 
 ```bash
 curl -s http://127.0.0.1:8000/employees/E-1042
@@ -579,13 +581,9 @@ curl -s http://127.0.0.1:8000/employees/E-1042
     "id": 2,
     "name": "Engineering"
   },
-  "designation": {
-    "title": "Senior Software Engineer",
-    "level": 3
-  },
-  "location": {
-    "name": "HITEC City",
-    "city": "Hyderabad"
+  "shift": {
+    "name": "General",
+    "start_time": "09:00:00"
   },
   "manager": {
     "employee_code": "E-1002",
@@ -598,18 +596,18 @@ Karthik's team, through the `direct_reports` side of the self-reference:
 
 ```bash
 curl -s http://127.0.0.1:8000/employees/E-1002/team \
-  | python -c "import json,sys; d=json.load(sys.stdin); print('Manager:', d['manager']['full_name']); [print(' ', r['employee_code'], r['full_name'], '-', r['designation']['title']) for r in d['direct_reports']]"
+  | python -c "import json,sys; d=json.load(sys.stdin); print('Manager:', d['manager']['full_name']); [print(' ', r['employee_code'], r['full_name'], '-', r['department']['name']) for r in d['direct_reports']]"
 ```
 
 ```{ .text .output }
 Manager: Karthik Menon
-  E-1042 Ananya Rao - Senior Software Engineer
-  E-1050 Kavya Srinivasan - Software Engineer
-  E-1046 Priya Nair - Software Engineer
-  E-1051 Rohan Gupta - Senior Software Engineer
-  E-1048 Sneha Patil - Software Engineer
-  E-1056 Swati Kulkarni - QA Lead
-  E-1047 Vikram Joshi - DevOps Engineer
+  E-1042 Ananya Rao - Engineering
+  E-1050 Kavya Srinivasan - Engineering
+  E-1046 Priya Nair - Engineering
+  E-1051 Rohan Gupta - Engineering
+  E-1048 Sneha Patil - Platform Engineering
+  E-1056 Swati Kulkarni - Quality Assurance
+  E-1047 Vikram Joshi - Platform Engineering
 ```
 
 The department tree: top-level departments with their heads and sub-departments:
@@ -630,30 +628,25 @@ Product | head: Neha Kapoor | sub: []
 
 ### Reports with GROUP BY
 
-The HR dashboard in the BRD shows headcount by department and by location. One `GROUP BY` query each, built in Python:
+The HR dashboard in the BRD shows headcount by department. One `GROUP BY` query, built in Python:
 
 ```bash
-curl -s "http://127.0.0.1:8000/reports/headcount?by=location"
+curl -s "http://127.0.0.1:8000/reports/headcount?by=department" \
+  | python -c "import json,sys; [print(r['group'], r['headcount']) for r in json.load(sys.stdin)]"
 ```
 
 ```{ .text .output }
-[
-  {
-    "group": "Hyderabad",
-    "headcount": 13
-  },
-  {
-    "group": "Bengaluru",
-    "headcount": 4
-  },
-  {
-    "group": "Pune",
-    "headcount": 2
-  }
-]
+Engineering 5
+Finance 3
+Quality Assurance 3
+Human Resources 2
+Platform Engineering 2
+Product 2
+IT Operations 1
+Leadership 1
 ```
 
-The BRD's attendance wireframe for Monday 5 October 2026 shows Karthik and Priya arriving late and Fatima on sick leave. A check-in counts as late after the shift's start **plus** its grace period (09:15 for the General shift, 07:10 for Early):
+The BRD's attendance wireframe for Monday 5 October 2026 shows Karthik and Priya arriving late. A check-in counts as late after the shift's start **plus** its grace period (09:15 for the General shift, 07:10 for Early):
 
 ```bash
 curl -s "http://127.0.0.1:8000/reports/attendance/daily?date=2026-10-05"
@@ -676,31 +669,30 @@ curl -s "http://127.0.0.1:8000/reports/attendance/daily?date=2026-10-05"
       "check_in": "10:05:00"
     }
   ],
-  "on_leave": ["Fatima Khan"],
-  "absent": []
+  "not_checked_in": ["Fatima Khan"]
 }
 ```
 
-Wednesday shows someone absent with no leave on record, exactly the "exceptions" list HR checks every morning:
+Fatima hasn't checked in: she's on approved sick leave, but this report can't tell yet, because we haven't mapped `leave_requests`. That's exercise 6. Wednesday has Sneha missing with no leave at all, exactly the "exceptions" list HR checks every morning:
 
 ```bash
 curl -s "http://127.0.0.1:8000/reports/attendance/daily?date=2026-10-07" \
-  | python -c "import json,sys; d=json.load(sys.stdin); print('present', d['present'], 'of', d['employees']); print('late:', [l['employee'] for l in d['late']]); print('absent:', d['absent'])"
+  | python -c "import json,sys; d=json.load(sys.stdin); print('present', d['present'], 'of', d['employees']); print('late:', [l['employee'] for l in d['late']]); print('not checked in:', d['not_checked_in'])"
 ```
 
 ```{ .text .output }
 present 18 of 19
 late: ['Vikram Joshi', 'Deepa Krishnan', 'Manoj Pillai']
-absent: ['Sneha Patil']
+not checked in: ['Sneha Patil']
 ```
 
 ```bash
-curl -s -w "\nHTTP %{http_code}\n" "http://127.0.0.1:8000/reports/attendance/daily?date=2026-10-20"
+curl -s -w "\nHTTP %{http_code}\n" "http://127.0.0.1:8000/reports/attendance/daily?date=2026-10-10"
 curl -s -w "\nHTTP %{http_code}\n" http://127.0.0.1:8000/employees/E-1999
 ```
 
 ```{ .text .output }
-{"detail":"2026-10-20 is not a working day"}
+{"detail":"2026-10-10 is a weekend"}
 HTTP 400
 {"detail":"Employee E-1999 not found"}
 HTTP 404
@@ -766,6 +758,8 @@ That's why `get_employee` uses `joinedload` for the department, designation, loc
 | `from_attributes` missing | `ResponseValidationError` / "Input should be a valid dictionary" | `model_config = ConfigDict(from_attributes=True)` |
 | `__tablename__` doesn't match the real table | `ProgrammingError: ... 1146 (42S02): Table 'acmehr.employee' doesn't exist` | Match the exact table name |
 | Lazy-loading in a loop | Hundreds of queries, slow endpoints | `selectinload` / `joinedload` |
+| Sessions not closed, or held during slow work | `TimeoutError: QueuePool limit of size 5 overflow 10 reached` | Always close via `get_db`; don't call slow external services with a session open |
+| Many workers, each with a big pool | MySQL: `Too many connections` | Keep `workers × (pool_size + max_overflow)` below `max_connections` |
 | `== None` in a query | Works, but linters complain | `.is_(None)` / `.is_not(None)` |
 
 ## Practice Exercises
@@ -774,15 +768,15 @@ Use a fresh `acmehr` and the code from this lesson.
 
 **Easy**
 
-1. Add `GET /locations` returning each office's name, city and region.
+1. Map the `locations` table (id, name, city, region), add `location_id` and a `location` relationship to `Employee`, and add `GET /locations`.
 2. Add `GET /employees/{code}/manager` returning the employee's manager as an `EmployeeBrief`, or `null` for the CEO.
-3. Add a `by=gender` option to the headcount report.
+3. Add a `by=shift` option to the headcount report.
 
 **Medium**
 
 4. Add `GET /departments/{department_id}/employees` that lists the department's active employees **and** those of its sub-departments (hint: `Department.id.in_([...])`). Engineering should include Platform Engineering and QA.
-5. Add `GET /employees/{code}/leave-balances?year=2026` with SQLAlchemy, returning the leave type's code and name, allocated, used and remaining.
-6. Add `GET /reports/attendance/weekly?start=2026-10-05` that returns, for each employee, how many days of that week they were present and late.
+5. Map `leave_types` and `leave_balances` (a composite primary key: `employee_id`, `leave_type_id`, `year`), and add `GET /employees/{code}/leave-balances?year=2026` returning each type's code and name, allocated, used and remaining.
+6. Map `leave_requests` and split the daily report's `not_checked_in` into `on_leave` (approved full-day leave covering the date) and `absent`. Fatima should move to `on_leave` on 5 October.
 
 **Challenge**
 
@@ -796,7 +790,7 @@ Use a fresh `acmehr` and the code from this lesson.
     def get_manager(code: EmployeeCode, db: DB):
         return services.get_employee(db, code).manager
 
-    # 3  in headcount: add "gender": Employee.gender to the dict, and allow it in the Literal
+    # 3  in headcount: add "shift": Shift.name to the dict, .join(Employee.shift), and allow it in the Literal
 
     # 4
     @router.get("/departments/{department_id}/employees", response_model=list[EmployeeBrief], tags=["Organisation"])
@@ -809,7 +803,8 @@ Use a fresh `acmehr` and the code from this lesson.
                 .order_by(Employee.first_name))
         return db.scalars(stmt).all()
 
-    # 5
+    # 5  models: LeaveType(id, code, name) and
+    #    LeaveBalance(employee_id, leave_type_id, year: all primary_key=True; allocated, used; leave_type relationship)
     @router.get("/employees/{code}/leave-balances", tags=["Leave"])
     def leave_balances(code: EmployeeCode, db: DB, year: int = 2026):
         employee = services.get_employee(db, code)
@@ -817,6 +812,12 @@ Use a fresh `acmehr` and the code from this lesson.
                 .options(joinedload(LeaveBalance.leave_type)).order_by(LeaveBalance.leave_type_id))
         return [{"code": b.leave_type.code, "name": b.leave_type.name, "allocated": float(b.allocated),
                  "used": float(b.used), "remaining": float(b.allocated - b.used)} for b in db.scalars(stmt)]
+
+    # 6  model LeaveRequest(id, employee_id, start_date, end_date, duration, status), then in daily_attendance:
+    on_leave_ids = set(db.scalars(select(LeaveRequest.employee_id).where(
+        LeaveRequest.status == "approved", LeaveRequest.duration == "full",
+        LeaveRequest.start_date <= day, LeaveRequest.end_date >= day)))
+    # ...and append to on_leave or absent depending on `e.id in on_leave_ids`
 
     # 7
     @router.get("/employees/{code}/org-chart", tags=["Employees"])
@@ -834,7 +835,7 @@ Use a fresh `acmehr` and the code from this lesson.
     ```
 
 !!! note "Mini Assignment"
-    Move your **AcmeHR API** to SQLAlchemy: add `app/database.py` and `app/models.py` for the acmehr tables (with the `manager` / `direct_reports` and `parent` / `sub_departments` relationships), and convert every **read** endpoint (directory, profile, team, departments, leave balances, the headcount and daily attendance reports) to SQLAlchemy queries with `response_model`s. Turn on `echo=True` once and make sure no endpoint has an N+1 problem.
+    Move your **AcmeHR API** to SQLAlchemy: add `app/database.py` with explicit pool settings and `app/models.py` for the four tables here plus `locations`, `designations` and the leave tables (exercises 1, 5 and 6), and convert every **read** endpoint (directory, profile, team, departments, leave balances, the headcount and daily attendance reports) to SQLAlchemy queries with `response_model`s. Turn on `echo=True` once and make sure no endpoint has an N+1 problem.
 
 ## Interview Questions
 
@@ -843,6 +844,9 @@ Use a fresh `acmehr` and the code from this lesson.
 
 !!! interview "2. What is the difference between the engine and a session in SQLAlchemy?"
     The engine is created once per application; it holds the connection pool and the dialect for talking to the database. A session is a short-lived unit of work (typically one per request) that tracks loaded and changed objects and manages the transaction (`commit` / `rollback`).
+
+!!! interview "What do `pool_size`, `max_overflow`, `pool_timeout` and `pool_recycle` control?"
+    `pool_size` is how many connections the engine keeps open for reuse; `max_overflow` is how many extra connections it may open during a burst (closed again when returned); `pool_timeout` is how long a request waits for a free connection before a `TimeoutError`; `pool_recycle` replaces connections older than N seconds, so MySQL's `wait_timeout` or a proxy never kills one under you. Size them so `workers × (pool_size + max_overflow)` stays below MySQL's `max_connections`, and add `pool_pre_ping=True` to detect dead connections.
 
 !!! interview "3. How do you model an employee–manager relationship in SQLAlchemy?"
     A nullable `manager_id` foreign key to the same table, plus two relationships on the class: `manager = relationship(remote_side=[id], back_populates="direct_reports")` (many-to-one) and `direct_reports = relationship(back_populates="manager")` (one-to-many). `remote_side` tells SQLAlchemy which end is the parent.
@@ -862,7 +866,8 @@ Use a fresh `acmehr` and the code from this lesson.
 |---------|------|
 | Install | `pip install sqlalchemy mysql-connector-python` |
 | URL | `mysql+mysqlconnector://user:pass@host:3306/acmehr` (from env) |
-| Engine / sessions | `create_engine(URL, pool_pre_ping=True)` · `sessionmaker(bind=engine)` |
+| Engine / sessions | `create_engine(URL, pool_size=5, max_overflow=10, pool_timeout=30, pool_recycle=1800, pool_pre_ping=True)` · `sessionmaker(bind=engine)` |
+| Pool sizing | `workers × (pool_size + max_overflow)` < MySQL `max_connections` |
 | Model | `class Employee(Base): __tablename__ = "employees"; id: Mapped[int] = mapped_column(primary_key=True)` |
 | Relationship | `department: Mapped[Department] = relationship(back_populates="employees")` |
 | Self-reference | `manager = relationship(remote_side=[id])` + `direct_reports = relationship(...)` |
