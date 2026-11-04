@@ -31,7 +31,7 @@ An **ORM** (Object-Relational Mapper) lets you work with **Python classes and ob
 |----------|------------------|
 | Table `employees` | Class `Employee` |
 | Row | An `Employee` object |
-| Column `hire_date` | Attribute `employee.hire_date` |
+| Column `first_name` | Attribute `employee.first_name` |
 | Foreign key `department_id` | Relationship `employee.department` |
 | Self-reference `manager_id` | `employee.manager` and `employee.direct_reports` |
 | `SELECT * FROM employees WHERE id = 6` | `db.get(Employee, 6)` |
@@ -217,22 +217,19 @@ class Department(Base):
     __tablename__ = "departments"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(60), unique=True)
+    name: Mapped[str] = mapped_column(String(60))
     parent_id: Mapped[int | None] = mapped_column(ForeignKey("departments.id"))
-    head_id: Mapped[int | None] = mapped_column(ForeignKey("employees.id"))
 
     parent: Mapped["Department | None"] = relationship(remote_side=[id], back_populates="sub_departments")
     sub_departments: Mapped[list["Department"]] = relationship(back_populates="parent")
-    head: Mapped["Employee | None"] = relationship(foreign_keys=[head_id])
-    employees: Mapped[list["Employee"]] = relationship(foreign_keys="Employee.department_id",
-                                                       back_populates="department")
+    employees: Mapped[list["Employee"]] = relationship(back_populates="department")
 
 
 class Shift(Base):
     __tablename__ = "shifts"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(30), unique=True)
+    name: Mapped[str] = mapped_column(String(30))
     start_time: Mapped[time]
     grace_minutes: Mapped[int]
 
@@ -241,18 +238,15 @@ class Employee(Base):
     __tablename__ = "employees"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    employee_code: Mapped[str] = mapped_column(String(10), unique=True)
+    employee_code: Mapped[str] = mapped_column(String(10))
     first_name: Mapped[str] = mapped_column(String(50))
     last_name: Mapped[str] = mapped_column(String(50))
-    email: Mapped[str] = mapped_column(String(120), unique=True)
-    gender: Mapped[str] = mapped_column(String(10))
-    hire_date: Mapped[date]
     status: Mapped[str] = mapped_column(String(10))
     department_id: Mapped[int] = mapped_column(ForeignKey("departments.id"))
     manager_id: Mapped[int | None] = mapped_column(ForeignKey("employees.id"))
     shift_id: Mapped[int] = mapped_column(ForeignKey("shifts.id"))
 
-    department: Mapped[Department] = relationship(foreign_keys=[department_id], back_populates="employees")
+    department: Mapped[Department] = relationship(back_populates="employees")
     shift: Mapped[Shift] = relationship()
     manager: Mapped["Employee | None"] = relationship(remote_side=[id], back_populates="direct_reports")
     direct_reports: Mapped[list["Employee"]] = relationship(back_populates="manager")
@@ -269,7 +263,6 @@ class Attendance(Base):
     employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id"))
     work_date: Mapped[date]
     check_in: Mapped[time]
-    check_out: Mapped[time | None]
 
     employee: Mapped[Employee] = relationship()
 ```
@@ -278,11 +271,11 @@ class Attendance(Base):
 |--------|---------|
 | `__tablename__ = "employees"` | The MySQL table this class maps to |
 | `Mapped[int]` | Column type; `Mapped[str \| None]` means the column is nullable |
-| `mapped_column(primary_key=True)` | Column options: PK, `ForeignKey`, `String(100)`, `unique`, `default` |
+| `mapped_column(primary_key=True)` | Column options: primary key, `ForeignKey`, `String(50)` |
 | `relationship(back_populates=...)` | Navigation between objects: `employee.department`, `department.employees` |
 | `@property full_name` | A normal Python property; Pydantic can read it like a column |
 
-Notice that `Employee` maps only 11 of the table's 20 columns. That's allowed: SQLAlchemy reads and writes only what you map. Add the phone, date of birth and the rest when an endpoint needs them.
+Each class maps only the columns this lesson uses: `Employee` has 8 of the table's 20. That's allowed, because SQLAlchemy reads and writes only what you map. Add the email, phone and the rest when an endpoint needs them.
 
 ### Self-referencing relationships
 
@@ -297,25 +290,14 @@ direct_reports: Mapped[list["Employee"]] = relationship(back_populates="manager"
 
 Both sides use the same foreign key, so SQLAlchemy needs a hint about which side is the "one": `remote_side=[id]` says *"for `manager`, the employee on the other end is matched by **its** `id`"*. The result is an org chart you can walk with plain attributes: `arjun.manager.manager.full_name` is `"Karthik Menon"`. Departments use the same trick for sub-departments.
 
-### Two paths between two tables
-
-`departments` and `employees` point at each other: an employee's `department_id`, and a department's `head_id`. When there's more than one path, SQLAlchemy can't guess which one a relationship should use, and stops with an `AmbiguousForeignKeysError`. `foreign_keys=[...]` tells it:
-
-```{ .python .no-run }
-head: Mapped["Employee | None"] = relationship(foreign_keys=[head_id])                  # departments.head_id
-department: Mapped[Department] = relationship(foreign_keys=[department_id], ...)        # employees.department_id
-```
-
 !!! info "Existing tables vs creating tables"
     Here the tables already exist (we created them with `acmehr.sql`), so the models just **describe** them. For a brand-new project, `Base.metadata.create_all(engine)` can create tables from the models. Real projects use a **migration** tool such as **Alembic** to create and change tables safely over time.
 
 ## Response Schemas from ORM Objects
 
-Pydantic needs `from_attributes=True` to read data from **object attributes** (`employee.hire_date`) instead of dict keys:
+Pydantic needs `from_attributes=True` to read data from **object attributes** (`employee.first_name`) instead of dict keys:
 
 ```python title="app/schemas.py"
-from datetime import date, time
-
 from pydantic import BaseModel, ConfigDict
 
 
@@ -333,35 +315,22 @@ class DepartmentBrief(ORMModel):
     name: str
 
 
-class ShiftOut(ORMModel):
-    name: str
-    start_time: time
-
-
 class EmployeeOut(ORMModel):
     employee_code: str
     full_name: str
-    email: str
-    hire_date: date
     status: str
     department: DepartmentBrief
-    shift: ShiftOut
     manager: EmployeeBrief | None
-
-
-class TeamMember(EmployeeBrief):
-    department: DepartmentBrief
 
 
 class TeamOut(ORMModel):
     manager: EmployeeBrief
-    direct_reports: list[TeamMember]
+    direct_reports: list[EmployeeBrief]
 
 
 class DepartmentOut(ORMModel):
     id: int
     name: str
-    head: EmployeeBrief | None
     sub_departments: list[DepartmentBrief]
 ```
 
@@ -385,7 +354,7 @@ def get_employee(db: Session, code: str) -> Employee:
     stmt = (
         select(Employee)
         .where(Employee.employee_code == code)
-        .options(joinedload(Employee.department), joinedload(Employee.shift), joinedload(Employee.manager))
+        .options(joinedload(Employee.department), joinedload(Employee.manager))
     )
     employee = db.scalars(stmt).first()
     if employee is None:
@@ -398,7 +367,6 @@ def get_team(db: Session, code: str) -> dict:
     stmt = (
         select(Employee)
         .where(Employee.manager_id == manager.id, Employee.status != "exited")
-        .options(joinedload(Employee.department))
         .order_by(Employee.first_name)
     )
     return {"manager": manager, "direct_reports": db.scalars(stmt).all()}
@@ -408,21 +376,19 @@ def list_departments(db: Session) -> list[Department]:
     stmt = (
         select(Department)
         .where(Department.parent_id.is_(None))
-        .options(joinedload(Department.head), selectinload(Department.sub_departments))
+        .options(selectinload(Department.sub_departments))
         .order_by(Department.name)
     )
     return db.scalars(stmt).all()
 
 
-def headcount(db: Session, by: str) -> list[dict]:
-    group = {"department": Department.name, "gender": Employee.gender}[by]
+def headcount(db: Session) -> list[dict]:
     stmt = (
-        select(group.label("group"), func.count(Employee.id).label("headcount"))
-        .select_from(Employee)
+        select(Department.name, func.count(Employee.id).label("headcount"))
         .join(Employee.department)
         .where(Employee.status != "exited")
-        .group_by(group)
-        .order_by(func.count(Employee.id).desc(), group)
+        .group_by(Department.name)
+        .order_by(func.count(Employee.id).desc(), Department.name)
     )
     return [row._asdict() for row in db.execute(stmt)]
 
@@ -431,7 +397,7 @@ def daily_attendance(db: Session, day: date) -> dict:
     if day.weekday() >= 5:
         raise HTTPException(status_code=400, detail=f"{day} is a weekend")
     employees = db.scalars(
-        select(Employee).where(Employee.status != "exited", Employee.hire_date <= day)
+        select(Employee).where(Employee.status != "exited")
         .options(joinedload(Employee.shift)).order_by(Employee.employee_code)
     ).all()
     records = {a.employee_id: a for a in db.scalars(select(Attendance).where(Attendance.work_date == day))}
@@ -444,9 +410,8 @@ def daily_attendance(db: Session, day: date) -> dict:
             continue
         deadline = datetime.combine(day, e.shift.start_time) + timedelta(minutes=e.shift.grace_minutes)
         if datetime.combine(day, record.check_in) > deadline:
-            late.append({"employee": e.full_name, "shift": e.shift.name, "check_in": record.check_in})
-    return {"date": day, "employees": len(employees), "present": len(records),
-            "late": late, "not_checked_in": missing}
+            late.append({"employee": e.full_name, "check_in": record.check_in})
+    return {"date": day, "present": len(records), "late": late, "not_checked_in": missing}
 ```
 
 (To keep this lesson focused on the database, the "not found" checks raise `HTTPException` directly. In [lesson 08](08-database-crud.md) you'll return to the clean router → service split with domain exceptions.)
@@ -459,7 +424,7 @@ def daily_attendance(db: Session, day: date) -> dict:
 | `WHERE first_name LIKE 'A%'` | `.where(Employee.first_name.like("A%"))` |
 | `JOIN departments ON ...` | `.join(Employee.department)` |
 | `LEFT JOIN` | `.outerjoin(...)` |
-| `ORDER BY hire_date DESC` | `.order_by(Employee.hire_date.desc())` |
+| `ORDER BY first_name DESC` | `.order_by(Employee.first_name.desc())` |
 | `LIMIT 10 OFFSET 20` | `.limit(10).offset(20)` |
 | `COUNT(*)`, `GROUP BY` | `func.count(...)`, `.group_by(...)` |
 | Get by primary key | `db.get(Employee, 6)` |
@@ -475,16 +440,16 @@ stmt = (
     select(Employee)
     .join(Employee.department)
     .where(Department.name == "Engineering", Employee.status == "active")
-    .order_by(Employee.hire_date)
+    .order_by(Employee.first_name)
     .limit(3)
 )
 print(stmt)
 ```
 
 ```{ .text .output }
-SELECT employees.id, employees.employee_code, employees.first_name, employees.last_name, employees.email, employees.gender, employees.hire_date, employees.status, employees.department_id, employees.manager_id, employees.shift_id 
+SELECT employees.id, employees.employee_code, employees.first_name, employees.last_name, employees.status, employees.department_id, employees.manager_id, employees.shift_id 
 FROM employees JOIN departments ON departments.id = employees.department_id 
-WHERE departments.name = :name_1 AND employees.status = :status_1 ORDER BY employees.hire_date
+WHERE departments.name = :name_1 AND employees.status = :status_1 ORDER BY employees.first_name
  LIMIT :param_1
 ```
 
@@ -494,7 +459,7 @@ The `:name_1`-style placeholders are **bound parameters**: values are sent separ
 
 ```python title="app/routers.py"
 from datetime import date
-from typing import Annotated, Literal
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path
 from sqlalchemy.orm import Session
@@ -524,8 +489,8 @@ def list_departments(db: DB):
 
 
 @router.get("/reports/headcount", tags=["Reports"])
-def headcount(db: DB, by: Literal["department", "gender"] = "department"):
-    return services.headcount(db, by)
+def headcount(db: DB):
+    return services.headcount(db)
 
 
 @router.get("/reports/attendance/daily", tags=["Reports"])
@@ -564,7 +529,7 @@ sequenceDiagram
 
 ## Trying the API Against MySQL
 
-Ananya's profile, with her department, shift and manager nested inside, straight from acmehr:
+Ananya's profile, with her department and manager nested inside, straight from acmehr:
 
 ```bash
 curl -s http://127.0.0.1:8000/employees/E-1042
@@ -574,16 +539,10 @@ curl -s http://127.0.0.1:8000/employees/E-1042
 {
   "employee_code": "E-1042",
   "full_name": "Ananya Rao",
-  "email": "ananya.rao@acme.example",
-  "hire_date": "2021-07-12",
   "status": "active",
   "department": {
     "id": 2,
     "name": "Engineering"
-  },
-  "shift": {
-    "name": "General",
-    "start_time": "09:00:00"
   },
   "manager": {
     "employee_code": "E-1002",
@@ -596,34 +555,34 @@ Karthik's team, through the `direct_reports` side of the self-reference:
 
 ```bash
 curl -s http://127.0.0.1:8000/employees/E-1002/team \
-  | python -c "import json,sys; d=json.load(sys.stdin); print('Manager:', d['manager']['full_name']); [print(' ', r['employee_code'], r['full_name'], '-', r['department']['name']) for r in d['direct_reports']]"
+  | python -c "import json,sys; d=json.load(sys.stdin); print('Manager:', d['manager']['full_name']); [print(' ', r['employee_code'], r['full_name']) for r in d['direct_reports']]"
 ```
 
 ```{ .text .output }
 Manager: Karthik Menon
-  E-1042 Ananya Rao - Engineering
-  E-1050 Kavya Srinivasan - Engineering
-  E-1046 Priya Nair - Engineering
-  E-1051 Rohan Gupta - Engineering
-  E-1048 Sneha Patil - Platform Engineering
-  E-1056 Swati Kulkarni - Quality Assurance
-  E-1047 Vikram Joshi - Platform Engineering
+  E-1042 Ananya Rao
+  E-1050 Kavya Srinivasan
+  E-1046 Priya Nair
+  E-1051 Rohan Gupta
+  E-1048 Sneha Patil
+  E-1056 Swati Kulkarni
+  E-1047 Vikram Joshi
 ```
 
-The department tree: top-level departments with their heads and sub-departments:
+The department tree: top-level departments with their sub-departments:
 
 ```bash
 curl -s http://127.0.0.1:8000/departments \
-  | python -c "import json,sys; [print(d['name'], '| head:', d['head']['full_name'] if d['head'] else None, '| sub:', [s['name'] for s in d['sub_departments']]) for d in json.load(sys.stdin)]"
+  | python -c "import json,sys; [print(d['name'], [s['name'] for s in d['sub_departments']]) for d in json.load(sys.stdin)]"
 ```
 
 ```{ .text .output }
-Engineering | head: Karthik Menon | sub: ['Platform Engineering', 'Quality Assurance']
-Finance | head: Suresh Babu | sub: []
-Human Resources | head: Rahul Sharma | sub: []
-IT Operations | head: Deepa Krishnan | sub: []
-Leadership | head: Lakshmi Menon | sub: []
-Product | head: Neha Kapoor | sub: []
+Engineering ['Platform Engineering', 'Quality Assurance']
+Finance []
+Human Resources []
+IT Operations []
+Leadership []
+Product []
 ```
 
 ### Reports with GROUP BY
@@ -631,8 +590,8 @@ Product | head: Neha Kapoor | sub: []
 The HR dashboard in the BRD shows headcount by department. One `GROUP BY` query, built in Python:
 
 ```bash
-curl -s "http://127.0.0.1:8000/reports/headcount?by=department" \
-  | python -c "import json,sys; [print(r['group'], r['headcount']) for r in json.load(sys.stdin)]"
+curl -s "http://127.0.0.1:8000/reports/headcount" \
+  | python -c "import json,sys; [print(r['name'], r['headcount']) for r in json.load(sys.stdin)]"
 ```
 
 ```{ .text .output }
@@ -655,17 +614,14 @@ curl -s "http://127.0.0.1:8000/reports/attendance/daily?date=2026-10-05"
 ```{ .text .output }
 {
   "date": "2026-10-05",
-  "employees": 19,
   "present": 18,
   "late": [
     {
       "employee": "Karthik Menon",
-      "shift": "General",
       "check_in": "09:41:00"
     },
     {
       "employee": "Priya Nair",
-      "shift": "General",
       "check_in": "10:05:00"
     }
   ],
@@ -677,11 +633,11 @@ Fatima hasn't checked in: she's on approved sick leave, but this report can't te
 
 ```bash
 curl -s "http://127.0.0.1:8000/reports/attendance/daily?date=2026-10-07" \
-  | python -c "import json,sys; d=json.load(sys.stdin); print('present', d['present'], 'of', d['employees']); print('late:', [l['employee'] for l in d['late']]); print('not checked in:', d['not_checked_in'])"
+  | python -c "import json,sys; d=json.load(sys.stdin); print('present', d['present']); print('late:', [l['employee'] for l in d['late']]); print('not checked in:', d['not_checked_in'])"
 ```
 
 ```{ .text .output }
-present 18 of 19
+present 18
 late: ['Vikram Joshi', 'Deepa Krishnan', 'Manoj Pillai']
 not checked in: ['Sneha Patil']
 ```
@@ -742,7 +698,7 @@ employees.department_id IN (%(primary_keys_1)s, %(primary_keys_2)s, %(primary_ke
 | `selectinload(...)` | 1 + 1 | Loading collections (`department.employees`, `manager.direct_reports`) |
 | `joinedload(...)` | 1 (with a JOIN) | Loading single related objects (`employee.department`, `employee.manager`) |
 
-That's why `get_employee` uses `joinedload` for the department, designation, location and manager (one row each), and `list_departments` uses `selectinload` for the sub-departments (a list).
+That's why `get_employee` uses `joinedload` for the department and manager (one row each), and `list_departments` uses `selectinload` for the sub-departments (a list).
 
 !!! realworld "In Real Projects"
     Teams turn on `create_engine(..., echo=True)` during development to print every SQL statement SQLAlchemy runs. If loading the org chart prints hundreds of near-identical `SELECT`s, that's an N+1 problem waiting to be fixed with `selectinload` or `joinedload`. Many teams also add a test that fails if an endpoint runs more than a fixed number of queries.
@@ -753,7 +709,6 @@ That's why `get_employee` uses `joinedload` for the department, designation, loc
 |---------|-----------------|-----|
 | Wrong URL / password | `ProgrammingError: (mysql.connector.errors.ProgrammingError) 1045 (28000): Access denied for user 'root'@'localhost'` | Check `DATABASE_URL`; URL-encode special characters |
 | MySQL not running | `DatabaseError: (mysql.connector.errors.DatabaseError) 2003 (HY000): Can't connect to MySQL server on 'localhost:3306'` | Start MySQL; check host and port |
-| Two foreign keys to the same table, no hint | `AmbiguousForeignKeysError: Could not determine join condition between parent/child tables` | `relationship(foreign_keys=[...])` |
 | Self-reference without `remote_side` | `manager` behaves like a list, or a startup error about the relationship direction | `relationship(remote_side=[id])` on the "many-to-one" side |
 | `from_attributes` missing | `ResponseValidationError` / "Input should be a valid dictionary" | `model_config = ConfigDict(from_attributes=True)` |
 | `__tablename__` doesn't match the real table | `ProgrammingError: ... 1146 (42S02): Table 'acmehr.employee' doesn't exist` | Match the exact table name |
@@ -770,7 +725,7 @@ Use a fresh `acmehr` and the code from this lesson.
 
 1. Map the `locations` table (id, name, city, region), add `location_id` and a `location` relationship to `Employee`, and add `GET /locations`.
 2. Add `GET /employees/{code}/manager` returning the employee's manager as an `EmployeeBrief`, or `null` for the CEO.
-3. Add a `by=shift` option to the headcount report.
+3. Add a `GET /reports/headcount/shifts` that counts active employees per shift.
 
 **Medium**
 
@@ -790,7 +745,7 @@ Use a fresh `acmehr` and the code from this lesson.
     def get_manager(code: EmployeeCode, db: DB):
         return services.get_employee(db, code).manager
 
-    # 3  in headcount: add "shift": Shift.name to the dict, .join(Employee.shift), and allow it in the Literal
+    # 3  same as headcount(), with Shift.name, .join(Employee.shift) and .group_by(Shift.name)
 
     # 4
     @router.get("/departments/{department_id}/employees", response_model=list[EmployeeBrief], tags=["Organisation"])
@@ -855,7 +810,7 @@ Use a fresh `acmehr` and the code from this lesson.
     Loading N parent objects with one query and then lazily loading a relationship for each one, so N extra queries run. Fix it with eager loading: `selectinload()` (one extra IN query for collections) or `joinedload()` (a JOIN, good for many-to-one), or with an explicit join in the query.
 
 !!! interview "5. What does `from_attributes=True` do in Pydantic?"
-    It lets a Pydantic model be built from arbitrary objects by reading attributes (`obj.hire_date`, including properties like `full_name`) instead of dict keys, which is needed to return SQLAlchemy ORM objects through `response_model`. (It was called `orm_mode` in Pydantic v1.)
+    It lets a Pydantic model be built from arbitrary objects by reading attributes (`obj.first_name`, including properties like `full_name`) instead of dict keys, which is needed to return SQLAlchemy ORM objects through `response_model`. (It was called `orm_mode` in Pydantic v1.)
 
 !!! interview "Scenario: the org chart page takes 4 seconds and the logs show 200 SELECT statements. Diagnose and fix."
     Each employee's `direct_reports` is lazy-loaded while the tree is built, one query per person: an N+1 problem. Either load all employees in one query and build the tree in Python using `manager_id`, or use a recursive CTE in SQL. Add an index on `manager_id` (MySQL creates one for the foreign key) and a test that caps the number of queries.
