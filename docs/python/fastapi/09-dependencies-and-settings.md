@@ -497,7 +497,7 @@ Sneha Patil 06:52:00 - 15:52:00
 
 `get_clock` reads the settings: if `FIXED_NOW` is set, every endpoint sees that exact moment; otherwise it gets the real time. Our `.env` freezes the clock at **Monday 12 October 2026, 09:12**.
 
-`check_in` depends on **three** things: who's calling, a database session, and the clock. The caller comes from a header for now (`X-Employee-Code`); in [lesson 10](10-authentication-jwt.md) the same `current_employee` dependency will read a login token instead, and no endpoint will need to change.
+`check_in` depends on **three** things: who's calling, a database session, and the clock. The caller comes from a header for now (`X-Employee-Code`); in [lesson 10](10-authentication-jwt.md) a `get_current_user` dependency reads a signed login token instead. Endpoints only swap `CurrentEmployee` for `CurrentUser`; their code stays the same.
 
 ```bash
 curl -s -w "\nHTTP %{http_code}\n" -X POST http://127.0.0.1:8000/attendance/check-in

@@ -284,12 +284,21 @@ import jwt
 from app.config import get_settings
 
 
+MAX_PASSWORD_BYTES = 72        # bcrypt rejects longer input with ValueError
+
+
 def hash_password(plain: str) -> str:
     return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
 
 
 def verify_password(plain: str, hashed: str) -> bool:
+    if len(plain.encode()) > MAX_PASSWORD_BYTES:  # can never match a stored hash
+        return False
     return bcrypt.checkpw(plain.encode(), hashed.encode())
+
+
+# A real bcrypt hash of a throwaway password, used when the email has no account (see login)
+DUMMY_HASH = hash_password("no-such-account")
 
 
 def create_access_token(employee_code: str, role: str) -> str:
@@ -321,7 +330,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Employee
-from app.security import create_access_token, decode_access_token, verify_password
+from app.security import DUMMY_HASH, create_access_token, decode_access_token, verify_password
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
@@ -380,7 +389,10 @@ def require_role(*roles: str):
 @router.post("/token", response_model=Token)
 def login(form: Annotated[OAuth2PasswordRequestForm, Depends()], db: DB):
     employee = db.scalars(select(Employee).where(Employee.email == form.username.lower())).first()
-    if not can_log_in(employee) or not verify_password(form.password, employee.account.password_hash):
+    allowed = can_log_in(employee)
+    # Always run bcrypt, even with no account, so the response time doesn't reveal which emails exist
+    hashed = employee.account.password_hash if allowed else DUMMY_HASH
+    if not verify_password(form.password, hashed) or not allowed:
         raise HTTPException(status_code=401, detail="Incorrect email or password",
                             headers={"WWW-Authenticate": "Bearer"})
     return {"access_token": create_access_token(employee.employee_code, employee.role)}
@@ -475,6 +487,10 @@ def approve(request_id: int, user: CurrentUser, db: DB):
     if request.leave_type.days_per_year is not None:
         balance = db.get(LeaveBalance, (request.employee_id, request.leave_type_id, request.start_date.year),
                          with_for_update=True)
+        remaining = balance.allocated - balance.used if balance else 0
+        if request.days > remaining:
+            raise HTTPException(status_code=409, detail=f"Only {float(remaining):g} day(s) of "
+                                f"{request.leave_type.code} left; this request needs {float(request.days):g}")
         balance.used += request.days
     request.status = "approved"
     request.approver_id = user.id
@@ -522,11 +538,16 @@ The OAuth2 standard says the login request is **form data** (not JSON) with fiel
 !!! tip "Same error for every login failure"
     Wrong email, wrong password, an exited employee, a disabled account: all return *"Incorrect email or password"*. Saying *"No account with this email"* lets attackers discover which emails exist, and which employees have left.
 
+    The **time** taken must match too. bcrypt is deliberately slow (about a quarter of a second), so if `login` skipped it for unknown emails, those would be answered almost instantly and real ones wouldn't. Someone timing the responses could still tell them apart. That's why `login` checks the password against `DUMMY_HASH` when there's no account: every failure takes the same time.
+
 ### get_current_user
 
 The dependency that turns a token into an employee: decode → verify signature and expiry → load the employee from MySQL → check they may still log in → or 401. Any endpoint that adds `user: CurrentUser` is now **login-only**, and gets the real `Employee` object to make decisions with.
 
 It's the same idea as lesson 09's `current_employee`, which read an `X-Employee-Code` header that anyone could fake. Only the source changed: a signed token instead of a plain header.
+
+!!! tip "Updating your lesson 09 code"
+    Delete `current_employee` and `CurrentEmployee` from your project, and change every `CurrentEmployee` in your endpoints to `CurrentUser`. Both give the endpoint the same `Employee` object, so nothing else in the endpoint changes. The next lesson's tests use the names `get_current_user` and `CurrentUser`.
 
 !!! info "Why load the employee from the database every time?"
     The token says `"role": "manager"`, but the endpoints check `user.role` from MySQL. If HR changes someone's role, or marks them exited, it takes effect on their **next request**, not when their token expires. The `role` in the token is still useful to the frontend, for example to show or hide the "Approvals" menu.
@@ -780,6 +801,7 @@ Open `/docs` and click **Authorize** 🔒. Enter `karthik.menon@acme.example` / 
 |---------|----------------|-----|
 | Storing plain-text passwords | Every account exposed in a leak | `bcrypt.hashpw` + `checkpw` |
 | Comparing hashes with `==` | Always `False` (random salt) | `bcrypt.checkpw(plain, hashed)` |
+| Hashing a password over 72 bytes | bcrypt raises `ValueError`, and the user sees a 500 | Limit new passwords to 72 bytes (`len(pw.encode())`, not `len(pw)`) |
 | Hard-coded `SECRET_KEY` in code | Anyone with the repo can forge tokens | Load it from the environment; make it long and random |
 | No `exp` claim | Stolen tokens work forever | Always set an expiry |
 | Trusting the token's `role` for decisions | A demoted or exited employee keeps their powers until expiry | Load the employee and check the database |
@@ -811,6 +833,10 @@ Open `/docs` and click **Authorize** 🔒. Enter `karthik.menon@acme.example` / 
     ```{ .python .no-run }
     import re
 
+    from pydantic import BaseModel, Field, field_validator
+
+    from app.security import MAX_PASSWORD_BYTES, hash_password, verify_password
+
     # 1
     @router.get("/employees/me/leave-balances", tags=["Leave"])
     def my_balances(user: CurrentUser, db: DB):
@@ -835,6 +861,8 @@ Open `/docs` and click **Authorize** 🔒. Enter `karthik.menon@acme.example` / 
         def strong(cls, value: str) -> str:
             if not re.search(r"\d", value) or not re.search(r"[A-Z]", value):
                 raise ValueError("needs at least one digit and one uppercase letter")
+            if len(value.encode()) > MAX_PASSWORD_BYTES:   # bytes, not characters: "₹" is 3 bytes
+                raise ValueError(f"must be at most {MAX_PASSWORD_BYTES} bytes")
             return value
 
     @router.post("/auth/change-password", status_code=204)
