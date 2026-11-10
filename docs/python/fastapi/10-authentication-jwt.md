@@ -4,7 +4,7 @@ category: FastAPI
 short: Auth
 api_app: app.main:app
 api_db: true
-description: Authentication and authorisation for AcmeHR — a user_accounts table with bcrypt password hashes, JWT access tokens with PyJWT, OAuth2 password login with the work email, the current-user dependency, and the BRD's roles (employee, manager, HR admin).
+description: Authentication and authorisation for AcmeHR, built in six small steps — bcrypt password hashes, JWT access tokens with PyJWT, a user_accounts table, OAuth2 password login with the work email, the current-user dependency, and the BRD's roles (employee, manager, HR admin).
 ---
 
 # Authentication with JWT
@@ -12,70 +12,89 @@ description: Authentication and authorisation for AcmeHR — a user_accounts tab
 !!! abstract "Learning Objectives"
     By the end of this lesson, you can:
 
-    - Explain authentication vs authorisation, and how token-based login works
-    - Hash and verify passwords with **bcrypt**, and never store plain text
+    - Explain authentication vs authorisation, and how token login works
+    - Hash and check passwords with **bcrypt**
     - Create and verify **JWT** access tokens with **PyJWT**
-    - Build login (`/auth/token`) and `/auth/me` with OAuth2 password flow, backed by a MySQL `user_accounts` table
-    - Enforce the BRD's access rules: employees see their own data, managers decide **their own team's** leave, HR admins manage employees
+    - Build a login endpoint and protect other endpoints with a `CurrentUser` dependency
+    - Enforce AcmeHR's rules: employees see their own data, managers decide **their own team's** leave, HR admins manage employees
 
 **Prerequisites:** [Dependency Injection & Settings](09-dependencies-and-settings.md)
 
+## The Problem
+
+In lesson 09, the API knew who was calling from a header:
+
+```{ .bash .no-run }
+curl -X POST http://127.0.0.1:8000/attendance/check-in -H "X-Employee-Code: E-1005"
+```
+
+Anyone can type `E-1005`. Ananya could check in as Suresh, and in lesson 08 she could even approve leave as him, by putting his code in the request body. The API **trusted whatever the caller said**.
+
+This lesson fixes that. Employees prove who they are **once**, with their work email and password, and get back a **token** the API signed. After that, the API reads the caller from the token, which nobody can fake.
+
 ## Authentication vs Authorisation
 
-| | Question | AcmeHR example | Failure status |
+| | Question | AcmeHR example | When it fails |
 |---|---|---|---|
 | **Authentication** | *Who are you?* | Log in with your work email and password | **401 Unauthorized** |
 | **Authorisation** | *Are you allowed to do this?* | Only Ananya's manager can approve her leave | **403 Forbidden** |
 
 !!! example "Real-life analogy: the office ID card"
-    On your first day at Acme, security checks your documents once and gives you an **ID card** (authentication → token). Every door reads the card, not your documents again, and the card decides which doors open: the server room only for IT, the HR records room only for HR (authorisation). Cards expire, and a lost card can be cancelled.
+    On your first day at Acme, security checks your documents **once** and gives you an **ID card** (authentication → token). After that, every door just reads the card, and the card decides which doors open: the server room only for IT, the HR records room only for HR (authorisation). Cards expire, and a lost card can be cancelled.
 
-The BRD's security section defines four roles, already stored in the `employees.role` column:
+The roles come from the BRD and are already in the `employees.role` column:
 
 | Role | Who in acmehr | Can |
 |------|---------------|-----|
-| `employee` | Ananya, Arjun, Priya… | See the directory, their own private profile, apply for leave |
-| `manager` | Lakshmi, Karthik, Neha, Suresh, Swati | Everything above, plus approve or reject **their direct reports'** leave |
-| `hr_admin` | Rahul, Imran | Manage employee records (status changes), see anyone's private profile, approve on behalf of a manager |
+| `employee` | Ananya, Arjun, Priya… | See the directory and their own private profile, apply for leave |
+| `manager` | Lakshmi, Karthik, Neha, Suresh, Swati | Everything above, plus approve **their direct reports'** leave |
+| `hr_admin` | Rahul, Imran | Change employee status, see anyone's private profile, approve on behalf of a manager |
 | `sys_admin` | Deepa | Technical administration (not used in this lesson) |
 
-## How Token Login Works
+## The Big Picture
 
 ```mermaid
 sequenceDiagram
-  participant C as Client (React / curl)
+  participant C as Client (browser / curl)
   participant A as AcmeHR API
-  participant M as MySQL
-  C->>A: POST /auth/token (work email + password)
-  A->>M: find the employee and their account
-  A->>A: verify the bcrypt hash
-  A-->>C: {"access_token": "eyJ...", "token_type": "bearer"}
-  Note over C: stores the token
-  C->>A: POST /leave-requests/4/approve<br/>Authorization: Bearer eyJ...
-  A->>A: verify signature + expiry
-  A->>M: load the employee, check they manage the requester
-  A-->>C: 200 approved, or 403 Forbidden
+  C->>A: 1. POST /auth/token (work email + password)
+  A-->>C: 2. a signed token: "eyJhbGci..."
+  C->>A: 3. GET /auth/me with header Authorization: Bearer eyJhbGci...
+  A-->>C: 4. 200 if the token is valid, otherwise 401
 ```
 
-1. The employee logs in **once** with their work email and password.
-2. The API returns a signed **token**.
-3. The client sends the token in the `Authorization: Bearer <token>` header on every request.
-4. The API verifies the token's **signature** and **expiry**, so nobody can fake a token or use an old one forever.
+1. The employee logs in **once** with their email and password.
+2. The API checks the password and returns a signed **token**.
+3. The client sends that token in the `Authorization` header on **every** request.
+4. The API checks the token's signature and expiry. It doesn't need the password again.
 
-## Passwords: Hash, Never Store
+The server keeps no list of who's logged in: everything it needs is inside the token. That's why token login is called **stateless**, and why it works the same with one server or ten.
 
-Storing passwords in plain text means one database leak exposes every employee's password, and people reuse passwords across sites (including their bank). Store a **hash** instead: a one-way fingerprint.
+We'll build it in six small steps, and test each one before moving on:
+
+| Step | You build | File |
+|------|-----------|------|
+| 1 | Hash and check passwords | `app/security.py` |
+| 2 | Create and read tokens | `app/security.py` |
+| 3 | A table of login accounts | `app/models.py`, `app/seed.py` |
+| 4 | The login endpoint | `app/auth.py` |
+| 5 | `CurrentUser`: protect any endpoint | `app/auth.py` |
+| 6 | Roles and team rules | `app/routers.py` |
+
+```bash
+pip install bcrypt PyJWT
+```
+
+## Step 1: Hash Passwords
+
+Never store passwords as they are. If the database leaks, every password leaks, and people reuse passwords on other sites (including their bank). Store a **hash** instead: a one-way fingerprint. You can turn a password into a hash, but not a hash back into a password.
 
 | Approach | Safe? | Why |
 |----------|-------|-----|
 | Plain text | ❌ | Anyone who sees the table sees the passwords |
 | Encryption | ❌ | Whoever has the key can decrypt everything |
-| Fast hash (MD5, SHA-256) | ❌ | Billions of guesses per second on a GPU |
-| **bcrypt / argon2** with a salt | ✅ | Deliberately slow, unique salt per password |
-
-```bash
-pip install bcrypt PyJWT
-```
+| Fast hash (MD5, SHA-256) | ❌ | A GPU can try billions of guesses per second |
+| **bcrypt** | ✅ | Deliberately slow, and adds a random **salt** to every password |
 
 ```python
 import bcrypt
@@ -94,27 +113,156 @@ False
 False
 ```
 
-The last line is `False`: hashing the **same** password twice gives **different** hashes, because each one has a random **salt**. You can't compare hashes directly; always use `checkpw`.
+- `hashpw` makes the hash. `$2b$` means bcrypt, and `12` is the cost: higher is slower.
+- `checkpw` answers one question: does this password match this hash?
+- The last line is `False`: hashing the **same** password twice gives **different** hashes. That's the salt at work.
 
-## JWT: JSON Web Tokens
+!!! example "Real-life analogy: a secret spice in every cup"
+    Two people make chai from the same tea leaves (the same password). Each adds their own random mix of spices (the salt) before brewing, so the two cups taste different. Someone who steals the cups can't tell that both used the same leaves, and a "taste guide" for every common tea (a ready-made table of hashes for common passwords) is useless. The salt isn't secret: bcrypt stores it inside the hash string itself. Its job is to make every hash unique.
 
-A **JWT** has three Base64-encoded parts separated by dots: `header.payload.signature`.
+Because of the salt, you can never compare hashes with `==`. Always use `checkpw`.
+
+## Step 2: Tokens with JWT
+
+A **JWT** (JSON Web Token, said "jot") is a short string with three parts separated by dots:
 
 ```text
 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9 . eyJzdWIiOiJFLTEwNDIiLCJyb2xlIjoiZW1wbG95ZWUifQ . 3kL9w...
-└─────────── header ───────────────┘   └────────────── payload (claims) ─────────────┘   └ signature ┘
+       header (algorithm)                       payload (the claims)                     signature
 ```
 
 | Part | Contains |
 |------|----------|
-| Header | Algorithm (`HS256`) and type (`JWT`) |
-| Payload | **Claims**: `sub` (subject: the employee code), `role`, `exp` (expiry time), `iat` (issued at) |
-| Signature | HMAC of header + payload using your **secret key**. Any change breaks it |
+| Header | The algorithm, here `HS256` |
+| Payload | The **claims**: `sub` (who: the employee code), `role`, `iat` (issued at), `exp` (expires at) |
+| Signature | A stamp made from the header, the payload and the server's **secret key** |
+
+Let's make one and read it back:
+
+```python
+from datetime import datetime, timedelta, timezone
+
+import jwt
+
+SECRET = "only-the-server-knows-this-key-1234567890"
+
+now = datetime.now(timezone.utc)
+claims = {"sub": "E-1042", "role": "employee", "iat": now, "exp": now + timedelta(minutes=30)}
+token = jwt.encode(claims, SECRET, algorithm="HS256")
+print(token[:36] + "...")
+
+decoded = jwt.decode(token, SECRET, algorithms=["HS256"])
+print(decoded["sub"], decoded["role"], "| valid for", decoded["exp"] - decoded["iat"], "seconds")
+```
+
+```{ .text .output }
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+E-1042 employee | valid for 1800 seconds
+```
+
+- `jwt.encode` builds the token and **signs** it with the secret key.
+- `jwt.decode` checks the signature and the expiry, then gives the claims back. If either check fails, it raises an error.
+
+What does the signature actually protect? Let's attack our own token:
+
+```python
+import base64
+import json
+from datetime import datetime, timedelta, timezone
+
+import jwt
+
+SECRET = "only-the-server-knows-this-key-1234567890"
+
+
+def make_token(minutes: int) -> str:
+    now = datetime.now(timezone.utc)
+    return jwt.encode({"sub": "E-1042", "role": "employee", "iat": now,
+                       "exp": now + timedelta(minutes=minutes)}, SECRET, algorithm="HS256")
+
+
+def check(label: str, token: str, key: str = SECRET) -> None:
+    try:
+        jwt.decode(token, key, algorithms=["HS256"])
+        print(f"{label:<28} accepted")
+    except jwt.InvalidTokenError as e:
+        print(f"{label:<28} rejected ({type(e).__name__})")
+
+
+token = make_token(30)
+header, payload, signature = token.split(".")
+
+# 1. Anyone can READ the payload: it's only Base64, no key needed
+print("Payload, read without the key:", json.loads(base64.urlsafe_b64decode(payload + "=="))["role"])
+
+# 2. Ananya edits her role to hr_admin and keeps the old signature
+fake = base64.urlsafe_b64encode(json.dumps({"sub": "E-1042", "role": "hr_admin"}).encode()).decode().rstrip("=")
+check("Real token", token)
+check("Role changed to hr_admin", f"{header}.{fake}.{signature}")
+check("Checked with a wrong key", token, key="some-other-key-that-is-long-enough-123")
+check("Expired a minute ago", make_token(-1))
+```
+
+```{ .text .output }
+Payload, read without the key: employee
+Real token                   accepted
+Role changed to hr_admin     rejected (InvalidSignatureError)
+Checked with a wrong key     rejected (InvalidSignatureError)
+Expired a minute ago         rejected (ExpiredSignatureError)
+```
+
+So the signature means **nobody can change** a token or make one up without the secret key. Expired tokens are refused too.
 
 !!! warning "JWTs are signed, not encrypted"
-    Anyone can decode the payload and read it (you'll do it below). The signature only proves it wasn't **changed**. Never put passwords, PAN numbers or other personal data in a JWT.
+    Line 1 of the output shows anyone can **read** a token. Only put what's safe to show in it: the employee code and role. Never put passwords, PAN numbers or other personal data in a JWT.
 
-## The Complete Example
+### Put both in app/security.py
+
+Steps 1 and 2 become four small functions. The rest of the app only calls these:
+
+```python title="app/security.py"
+from datetime import datetime, timedelta, timezone
+
+import bcrypt
+import jwt
+
+from app.config import get_settings
+
+MAX_PASSWORD_BYTES = 72        # bcrypt rejects longer input with ValueError
+
+
+def hash_password(plain: str) -> str:
+    return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
+
+
+def verify_password(plain: str, hashed: str) -> bool:
+    if len(plain.encode()) > MAX_PASSWORD_BYTES:  # can never match a stored hash
+        return False
+    return bcrypt.checkpw(plain.encode(), hashed.encode())
+
+
+# A real bcrypt hash of a throwaway password, used when the email has no account (see Step 4)
+DUMMY_HASH = hash_password("no-such-account")
+
+
+def create_access_token(employee_code: str, role: str) -> str:
+    settings = get_settings()
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": employee_code,
+        "role": role,
+        "iat": now,
+        "exp": now + timedelta(minutes=settings.access_token_minutes),
+    }
+    return jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
+
+
+def decode_access_token(token: str) -> dict:
+    settings = get_settings()
+    return jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+```
+
+The secret key and token lifetime come from settings, as in lesson 09. Add three settings:
 
 ```text title=".env"
 DATABASE_URL=mysql+mysqlconnector://root:password@localhost:3306/acmehr
@@ -122,57 +270,77 @@ SECRET_KEY=change-this-to-a-long-random-string-at-least-32-chars
 ACCESS_TOKEN_MINUTES=30
 ```
 
-```python title="app/config.py"
-from functools import lru_cache
+!!! tip "Make a real secret key"
+    Run `python -c "import secrets; print(secrets.token_urlsafe(32))"` and paste the result into `.env`. Anyone who knows the key can create tokens for any employee, so keep it out of Git, like your database password.
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
+??? info "app/config.py and app/database.py (expand to copy)"
 
+    `config.py` gets three new settings (highlighted). `database.py` is the same as lesson 09.
 
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env")
+    ```python title="app/config.py" hl_lines="10 11 12"
+    from functools import lru_cache
 
-    database_url: str = "mysql+mysqlconnector://root:password@localhost:3306/acmehr"
-    secret_key: str
-    algorithm: str = "HS256"
-    access_token_minutes: int = 30
+    from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-@lru_cache
-def get_settings() -> Settings:
-    return Settings()
-```
+    class Settings(BaseSettings):
+        model_config = SettingsConfigDict(env_file=".env")
 
-```python title="app/database.py"
-from collections.abc import Generator
-
-from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
-
-from app.config import get_settings
-
-engine = create_engine(get_settings().database_url, pool_pre_ping=True)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+        database_url: str = "mysql+mysqlconnector://root:password@localhost:3306/acmehr"
+        secret_key: str
+        algorithm: str = "HS256"
+        access_token_minutes: int = 30
 
 
-class Base(DeclarativeBase):
-    pass
+    @lru_cache
+    def get_settings() -> Settings:
+        return Settings()
+    ```
+
+    ```python title="app/database.py"
+    from collections.abc import Generator
+
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+
+    from app.config import get_settings
+
+    engine = create_engine(get_settings().database_url, pool_pre_ping=True)
+    SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
 
-def get_db() -> Generator[Session, None, None]:
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-```
+    class Base(DeclarativeBase):
+        pass
 
-### The accounts table
 
-Not every employee record needs a login (exited employees must not have one), and login details are security data that should live apart from HR data. So accounts get their own table, linked one-to-one to `employees`:
+    def get_db() -> Generator[Session, None, None]:
+        db = SessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+    ```
+
+## Step 3: A Table for Logins
+
+Where do the password hashes live? Not in `employees`:
+
+- Not every employee should be able to log in. Exited employees must not.
+- Login details are security data, and should live apart from HR data.
+
+So logins get their own table, `user_accounts`, with one row per employee who may log in:
+
+| Column | Meaning |
+|--------|---------|
+| `employee_id` | Which employee this login belongs to (one account per employee) |
+| `password_hash` | The 60-character bcrypt hash, never the password |
+| `is_active` | Switch a login off without touching HR data |
+
+In `app/models.py`, that's the `UserAccount` class, plus an `account` link on `Employee` (both highlighted). The other models are the ones you know from lesson 08:
 
 ??? info "app/models.py (expand to copy)"
 
-    ```python title="app/models.py"
+    ```python title="app/models.py" hl_lines="25 32 33 34 35 36 37 38 40"
     from datetime import date, datetime
     from decimal import Decimal
 
@@ -247,7 +415,7 @@ Not every employee record needs a login (exited employees must not have one), an
         used: Mapped[Decimal]
     ```
 
-The `user_accounts` table doesn't exist in `acmehr.sql` yet. Because the model describes it completely, SQLAlchemy can **create** it: `Base.metadata.create_all()` issues `CREATE TABLE` for any table that doesn't exist yet. A small seed script creates the table and gives every current employee a practice password:
+The table isn't in `acmehr.sql` yet. Since the model describes it completely, SQLAlchemy can create it: `create_all()` runs `CREATE TABLE` for tables that don't exist yet. This seed script does that, and gives every current employee a practice password:
 
 ```python title="app/seed.py"
 from sqlalchemy import select
@@ -275,50 +443,114 @@ if __name__ == "__main__":
     print(f"Created {seed_accounts()} user accounts")
 ```
 
-```python title="app/security.py"
-from datetime import datetime, timedelta, timezone
-
-import bcrypt
-import jwt
-
-from app.config import get_settings
-
-
-MAX_PASSWORD_BYTES = 72        # bcrypt rejects longer input with ValueError
-
-
-def hash_password(plain: str) -> str:
-    return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
-
-
-def verify_password(plain: str, hashed: str) -> bool:
-    if len(plain.encode()) > MAX_PASSWORD_BYTES:  # can never match a stored hash
-        return False
-    return bcrypt.checkpw(plain.encode(), hashed.encode())
-
-
-# A real bcrypt hash of a throwaway password, used when the email has no account (see login)
-DUMMY_HASH = hash_password("no-such-account")
-
-
-def create_access_token(employee_code: str, role: str) -> str:
-    settings = get_settings()
-    now = datetime.now(timezone.utc)
-    payload = {
-        "sub": employee_code,
-        "role": role,
-        "iat": now,
-        "exp": now + timedelta(minutes=settings.access_token_minutes),
-    }
-    return jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
-
-
-def decode_access_token(token: str) -> dict:
-    settings = get_settings()
-    return jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+```bash
+python -m app.seed
 ```
 
+```{ .text .output }
+Created 19 user accounts
+```
+
+Nineteen accounts: everyone except Ritu, who has exited. Open `user_accounts` in MySQL Workbench: it holds only 60-character hashes starting with `$2b$12$`, never the passwords.
+
+## Step 4: The Login Endpoint
+
+Login swaps an email and password for a token:
+
 ```python title="app/auth.py"
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app.models import Employee
+from app.security import DUMMY_HASH, create_access_token, verify_password
+
+router = APIRouter(prefix="/auth", tags=["Auth"])
+DB = Annotated[Session, Depends(get_db)]
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+def can_log_in(employee: Employee | None) -> bool:
+    return (employee is not None and employee.status != "exited"
+            and employee.account is not None and employee.account.is_active)
+
+
+@router.post("/token", response_model=Token)
+def login(form: Annotated[OAuth2PasswordRequestForm, Depends()], db: DB):
+    employee = db.scalars(select(Employee).where(Employee.email == form.username.lower())).first()
+    allowed = can_log_in(employee)
+    # Always run bcrypt, even with no account, so the response time doesn't reveal which emails exist
+    hashed = employee.account.password_hash if allowed else DUMMY_HASH
+    if not verify_password(form.password, hashed) or not allowed:
+        raise HTTPException(status_code=401, detail="Incorrect email or password",
+                            headers={"WWW-Authenticate": "Bearer"})
+    return {"access_token": create_access_token(employee.employee_code, employee.role)}
+```
+
+```python title="app/main.py"
+from fastapi import FastAPI
+
+from app.auth import router as auth_router
+
+app = FastAPI(title="AcmeHR API", version="4.0")
+app.include_router(auth_router)
+```
+
+Reading `login` from top to bottom:
+
+1. **`OAuth2PasswordRequestForm`** reads the login details. The OAuth2 standard says they arrive as **form data** (not JSON), in fields called `username` and `password`. We use the work email as the username.
+2. Find the employee by email.
+3. **`can_log_in`** checks that they may log in at all: not exited, with an account that's switched on.
+4. **`verify_password`** checks the password against the stored hash.
+5. If everything passes, return a token holding their employee code and role.
+
+Try it. Ananya logs in (note `-d`: form data, not JSON). We print just the start of the token:
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/auth/token \
+  -d "username=ananya.rao@acme.example&password=Acme@2026" \
+  | python -c "import json,sys; t=json.load(sys.stdin); print(t['token_type'], t['access_token'][:36] + '...')"
+```
+
+```{ .text .output }
+bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+A wrong password, and Ritu (exited, no account), get exactly the same answer:
+
+```bash
+curl -s -w "\nHTTP %{http_code}\n" -X POST http://127.0.0.1:8000/auth/token \
+  -d "username=ananya.rao@acme.example&password=wrong"
+curl -s -w "\nHTTP %{http_code}\n" -X POST http://127.0.0.1:8000/auth/token \
+  -d "username=ritu.kapoor@acme.example&password=Acme@2026"
+```
+
+```{ .text .output }
+{"detail":"Incorrect email or password"}
+HTTP 401
+{"detail":"Incorrect email or password"}
+HTTP 401
+```
+
+!!! tip "Same answer, same speed, for every login failure"
+    Wrong email, wrong password, an exited employee, a disabled account: all get *"Incorrect email or password"*. A message like *"No account with this email"* would tell an attacker which emails exist, and which employees have left.
+
+    The **time** taken must match too. bcrypt takes about a quarter of a second, so if `login` skipped it for unknown emails, they'd be answered almost instantly. Someone timing the responses could tell them apart. That's why `login` checks against `DUMMY_HASH` when there's no account.
+
+## Step 5: Protect Endpoints with CurrentUser
+
+Now the other half: when a request arrives **with** a token, find out who sent it. We add one dependency, `get_current_user`, to `app/auth.py` (new lines highlighted), plus a `/auth/me` endpoint to try it on:
+
+```python title="app/auth.py" hl_lines="3 4 5 12 16 24 25 26 27 28 29 30 31 32 33 34 35 36 37 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 78 79 80 81 82"
 from typing import Annotated
 
 import jwt
@@ -333,8 +565,8 @@ from app.models import Employee
 from app.security import DUMMY_HASH, create_access_token, decode_access_token, verify_password
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 DB = Annotated[Session, Depends(get_db)]
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 
 class Token(BaseModel):
@@ -402,6 +634,70 @@ def login(form: Annotated[OAuth2PasswordRequestForm, Depends()], db: DB):
 def me(user: CurrentUser):
     return Me(employee_code=user.employee_code, full_name=user.full_name, email=user.email, role=user.role)
 ```
+
+`get_current_user` turns a token into an employee in four moves:
+
+```mermaid
+flowchart LR
+  H["Authorization: Bearer eyJ..."] --> S["oauth2_scheme<br/>takes the token<br/>(missing → 401)"]
+  S --> D["decode_access_token<br/>checks signature + expiry<br/>(bad → 401)"]
+  D --> L["load the employee<br/>from MySQL"]
+  L --> C["can_log_in?<br/>(exited / disabled → 401)"]
+  C --> E["the Employee object"]
+```
+
+- **`OAuth2PasswordBearer`** reads the `Authorization: Bearer <token>` header and hands over the token, or answers 401 if there isn't one. Its `tokenUrl` tells `/docs` where to log in.
+- **`CurrentUser`** is the shortcut, just like `DB`. Any endpoint that adds `user: CurrentUser` is now **login-only**, and gets the real `Employee` to make decisions with.
+- **`require_role`** is used in Step 6.
+
+!!! info "Why load the employee from MySQL on every request?"
+    The token says `"role": "manager"`, but endpoints check `user.role` from the database. If HR changes someone's role, or marks them exited, it takes effect on their **next request**, not 30 minutes later when the token expires. (The `role` in the token is still useful to a frontend, for example to show or hide an "Approvals" menu.)
+
+Each test below starts with the same one-line `login` helper, so you can run any block on its own. Spread out, it reads:
+
+```{ .bash .no-run }
+login() {
+  curl -s -X POST http://127.0.0.1:8000/auth/token -d "username=$1&password=Acme@2026" \
+    | python -c "import json,sys; print(json.load(sys.stdin)['access_token'])"
+}
+ANANYA=$(login ananya.rao@acme.example)     # Ananya's token, saved in a shell variable
+```
+
+Without a token, with Ananya's token, and with a token where one character was changed:
+
+```bash
+login() { curl -s -X POST http://127.0.0.1:8000/auth/token -d "username=$1&password=Acme@2026" | python -c "import json,sys; print(json.load(sys.stdin)['access_token'])"; }
+ANANYA=$(login ananya.rao@acme.example)
+
+curl -s -w "\nHTTP %{http_code}\n" http://127.0.0.1:8000/auth/me
+curl -s -H "Authorization: Bearer $ANANYA" http://127.0.0.1:8000/auth/me; echo
+curl -s -w "\nHTTP %{http_code}\n" -H "Authorization: Bearer ${ANANYA%?}X" http://127.0.0.1:8000/auth/me
+```
+
+```{ .text .output }
+{"detail":"Not authenticated"}
+HTTP 401
+{"employee_code":"E-1042","full_name":"Ananya Rao","email":"ananya.rao@acme.example","role":"employee"}
+{"detail":"Could not validate credentials"}
+HTTP 401
+```
+
+!!! tip "Prefer clicking? Use /docs"
+    Open `/docs` and click **Authorize** 🔒. Enter `karthik.menon@acme.example` / `Acme@2026`. Swagger UI calls `/auth/token` for you and sends the token with every request you try. This also works on Windows without Git Bash.
+
+!!! tip "Updating your lesson 09 code"
+    Delete `current_employee` and `CurrentEmployee` from your project, and change every `CurrentEmployee` in your endpoints to `CurrentUser`. Both give the endpoint the same `Employee` object, so nothing else in the endpoint changes. The next lesson's tests use the names `get_current_user` and `CurrentUser`.
+
+## Step 6: Roles and Team Rules
+
+Now we know **who** is calling. Authorisation decides **what they may do**. AcmeHR needs two kinds of check:
+
+| Check | Example | How |
+|-------|---------|-----|
+| **Role-based** | Only HR admins change an employee's status | `Depends(require_role("hr_admin"))` |
+| **Relationship-based** | Only Ananya's manager approves Ananya's leave | Compare `request.employee.manager_id` with `user.id` in the endpoint |
+
+A role check only needs the user, so it fits in a reusable dependency. A relationship check needs the data too (which request? whose manager?), so it lives in the endpoint or service.
 
 ```python title="app/routers.py"
 from datetime import date, datetime
@@ -508,7 +804,7 @@ def change_status(code: EmployeeCode, change: StatusChange, db: DB,
     return {"employee": employee.full_name, "status": employee.status, "changed_by": hr.full_name}
 ```
 
-```python title="app/main.py"
+```python title="app/main.py" hl_lines="4 8"
 from fastapi import FastAPI
 
 from app.auth import router as auth_router
@@ -519,113 +815,16 @@ app.include_router(auth_router)
 app.include_router(router)
 ```
 
-(The approval here is a short version that changes the request and the balance in one commit. In your project, keep lesson 08's `LeaveService.approve()` with its audit row, and pass it the **current user** instead of an `approver_code` from the body.)
+Look at where each rule lives:
 
-## The Pieces Explained
+| Endpoint | Who may call it | The check |
+|----------|-----------------|-----------|
+| `GET /employees/{code}/profile` | The employee themselves, or HR | `user.employee_code != code and user.role != "hr_admin"` → 403 |
+| `GET /leave-requests/pending-approvals` | Anyone logged in, but they only see **their own** team | `.where(Employee.manager_id == user.id)` |
+| `POST /leave-requests/{id}/approve` | The requester's manager, or HR, never yourself | Three `if`s → 403 |
+| `PATCH /employees/{code}/status` | HR admins only | `require_role("hr_admin")` → 403 |
 
-### OAuth2PasswordBearer
-
-```{ .python .no-run }
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
-```
-
-A dependency that reads the `Authorization: Bearer <token>` header and returns the token string, or responds **401** if it's missing. `tokenUrl` tells `/docs` where to log in, which adds the 🔒 **Authorize** button.
-
-### Login with OAuth2PasswordRequestForm
-
-The OAuth2 standard says the login request is **form data** (not JSON) with fields `username` and `password`. We use the work email as the username. That's why the curl below uses `-d "username=...&password=..."`.
-
-!!! tip "Same error for every login failure"
-    Wrong email, wrong password, an exited employee, a disabled account: all return *"Incorrect email or password"*. Saying *"No account with this email"* lets attackers discover which emails exist, and which employees have left.
-
-    The **time** taken must match too. bcrypt is deliberately slow (about a quarter of a second), so if `login` skipped it for unknown emails, those would be answered almost instantly and real ones wouldn't. Someone timing the responses could still tell them apart. That's why `login` checks the password against `DUMMY_HASH` when there's no account: every failure takes the same time.
-
-### get_current_user
-
-The dependency that turns a token into an employee: decode → verify signature and expiry → load the employee from MySQL → check they may still log in → or 401. Any endpoint that adds `user: CurrentUser` is now **login-only**, and gets the real `Employee` object to make decisions with.
-
-It's the same idea as lesson 09's `current_employee`, which read an `X-Employee-Code` header that anyone could fake. Only the source changed: a signed token instead of a plain header.
-
-!!! tip "Updating your lesson 09 code"
-    Delete `current_employee` and `CurrentEmployee` from your project, and change every `CurrentEmployee` in your endpoints to `CurrentUser`. Both give the endpoint the same `Employee` object, so nothing else in the endpoint changes. The next lesson's tests use the names `get_current_user` and `CurrentUser`.
-
-!!! info "Why load the employee from the database every time?"
-    The token says `"role": "manager"`, but the endpoints check `user.role` from MySQL. If HR changes someone's role, or marks them exited, it takes effect on their **next request**, not when their token expires. The `role` in the token is still useful to the frontend, for example to show or hide the "Approvals" menu.
-
-### Two kinds of authorisation
-
-| Check | Example | How |
-|-------|---------|-----|
-| **Role-based** | Only HR admins change an employee's status | `Depends(require_role("hr_admin"))` |
-| **Relationship-based** | Only Ananya's manager approves Ananya's leave | Compare `request.employee.manager_id` with `user.id` inside the endpoint |
-
-Role checks fit in a reusable dependency. Relationship checks need the data being accessed (which request? whose manager?), so they live in the endpoint or service. Real HR systems need both.
-
-## Trying the Flow
-
-### Create the accounts
-
-```bash
-python -m app.seed
-```
-
-```{ .text .output }
-Created 19 user accounts
-```
-
-Nineteen accounts: everyone except Ritu, who has exited. Check MySQL Workbench: the new `user_accounts` table holds only 60-character bcrypt hashes, never the passwords.
-
-### Logging in
-
-A protected endpoint without a token:
-
-```bash
-curl -s -w "\nHTTP %{http_code}\n" http://127.0.0.1:8000/auth/me
-```
-
-```{ .text .output }
-{
-  "detail": "Not authenticated"
-}
-HTTP 401
-```
-
-Ananya logs in (form data, not JSON). We print just the start of the token:
-
-```bash
-curl -s -X POST http://127.0.0.1:8000/auth/token \
-  -d "username=ananya.rao@acme.example&password=Acme@2026" \
-  | python -c "import json,sys; t=json.load(sys.stdin); print(t['token_type'], t['access_token'][:36] + '...')"
-```
-
-```{ .text .output }
-bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-A wrong password, and Ritu (exited, no account) get exactly the same answer:
-
-```bash
-curl -s -w "\nHTTP %{http_code}\n" -X POST http://127.0.0.1:8000/auth/token \
-  -d "username=ananya.rao@acme.example&password=wrong"
-curl -s -w "\nHTTP %{http_code}\n" -X POST http://127.0.0.1:8000/auth/token \
-  -d "username=ritu.kapoor@acme.example&password=Acme@2026"
-```
-
-```{ .text .output }
-{"detail":"Incorrect email or password"}
-HTTP 401
-{"detail":"Incorrect email or password"}
-HTTP 401
-```
-
-To keep the commands short, a small shell function logs someone in and prints their token:
-
-```{ .bash .no-run }
-login() {
-  curl -s -X POST http://127.0.0.1:8000/auth/token -d "username=$1&password=Acme@2026" \
-    | python -c "import json,sys; print(json.load(sys.stdin)['access_token'])"
-}
-```
+The approval is a short version that changes the request and the balance in one commit. In your project, keep lesson 08's `LeaveService.approve()` with its audit row, and pass it the **current user** instead of an `approver_code` from the body.
 
 ### Employees see their own data
 
@@ -633,40 +832,24 @@ login() {
 login() { curl -s -X POST http://127.0.0.1:8000/auth/token -d "username=$1&password=Acme@2026" | python -c "import json,sys; print(json.load(sys.stdin)['access_token'])"; }
 ANANYA=$(login ananya.rao@acme.example)
 
-curl -s -H "Authorization: Bearer $ANANYA" http://127.0.0.1:8000/auth/me; echo
 curl -s -H "Authorization: Bearer $ANANYA" http://127.0.0.1:8000/employees/E-1042/profile; echo
 curl -s -w "\nHTTP %{http_code}\n" -H "Authorization: Bearer $ANANYA" http://127.0.0.1:8000/employees/E-1002/profile
+curl -s -w "\nHTTP %{http_code}\n" -X POST http://127.0.0.1:8000/leave-requests/4/approve -H "Authorization: Bearer $ANANYA"
 ```
 
 ```{ .text .output }
-{"employee_code":"E-1042","full_name":"Ananya Rao","email":"ananya.rao@acme.example","role":"employee"}
 {"employee_code":"E-1042","full_name":"Ananya Rao","phone":"9000001042","date_of_birth":"1994-08-17","emergency_contact":"Ravi Rao (9000011111)"}
 {"detail":"You can only view your own private profile"}
 HTTP 403
-```
-
-Ananya sees her own date of birth and emergency contact, and gets a **403** for her manager's: she *is* logged in (so not 401), she's just not allowed.
-
-### Managers decide their own team's leave
-
-Ananya has earned leave pending for 16–20 November (request 4). She can't approve it herself:
-
-```bash
-login() { curl -s -X POST http://127.0.0.1:8000/auth/token -d "username=$1&password=Acme@2026" | python -c "import json,sys; print(json.load(sys.stdin)['access_token'])"; }
-ANANYA=$(login ananya.rao@acme.example)
-
-curl -s -w "\nHTTP %{http_code}\n" -X POST http://127.0.0.1:8000/leave-requests/4/approve \
-  -H "Authorization: Bearer $ANANYA"
-```
-
-```{ .text .output }
-{
-  "detail": "You can't approve your own leave"
-}
+{"detail":"You can't approve your own leave"}
 HTTP 403
 ```
 
-Karthik logs in and sees his team's pending requests. The list is built from **who he is**, so nobody else's team appears:
+Ananya sees her own date of birth and emergency contact. She gets **403** for her manager's profile, and for approving her own leave: she *is* logged in (so not 401), she just isn't allowed.
+
+### Managers decide their own team's leave
+
+Karthik logs in and lists his team's pending requests:
 
 ```bash
 login() { curl -s -X POST http://127.0.0.1:8000/auth/token -d "username=$1&password=Acme@2026" | python -c "import json,sys; print(json.load(sys.stdin)['access_token'])"; }
@@ -689,15 +872,14 @@ curl -s -H "Authorization: Bearer $KARTHIK" http://127.0.0.1:8000/leave-requests
 ]
 ```
 
-He approves Ananya's request, then tries Meera's (request 8). Meera reports to Suresh in Finance:
+The list is built from **who Karthik is**, so nobody else's team appears. He approves Ananya's request, then tries Meera's (request 8). Meera reports to Suresh in Finance:
 
 ```bash
 login() { curl -s -X POST http://127.0.0.1:8000/auth/token -d "username=$1&password=Acme@2026" | python -c "import json,sys; print(json.load(sys.stdin)['access_token'])"; }
 KARTHIK=$(login karthik.menon@acme.example)
 
 curl -s -X POST http://127.0.0.1:8000/leave-requests/4/approve -H "Authorization: Bearer $KARTHIK"; echo
-curl -s -w "\nHTTP %{http_code}\n" -X POST http://127.0.0.1:8000/leave-requests/8/approve \
-  -H "Authorization: Bearer $KARTHIK"
+curl -s -w "\nHTTP %{http_code}\n" -X POST http://127.0.0.1:8000/leave-requests/8/approve -H "Authorization: Bearer $KARTHIK"
 ```
 
 ```{ .text .output }
@@ -706,11 +888,11 @@ curl -s -w "\nHTTP %{http_code}\n" -X POST http://127.0.0.1:8000/leave-requests/
 HTTP 403
 ```
 
-Compare this with lesson 08, where the approver's code came in the request body: anyone could have typed `"approver_code": "E-1005"` and approved as Suresh. Now the approver is whoever the **signed token** says, and the relationship check does the rest.
+Compare this with lesson 08, where anyone could send `"approver_code": "E-1005"` and approve as Suresh. Now the approver is whoever the **signed token** says, and the relationship check does the rest.
 
 ### HR admins manage employees
 
-Rahul (HR Manager, `hr_admin`) can read any private profile, and marks Manoj, who is serving his notice period, as exited. Ananya can't:
+Rahul (`hr_admin`) reads Ananya's private profile and marks Manoj, who is serving his notice, as exited. Ananya tries the same on Vikram:
 
 ```bash
 login() { curl -s -X POST http://127.0.0.1:8000/auth/token -d "username=$1&password=Acme@2026" | python -c "import json,sys; print(json.load(sys.stdin)['access_token'])"; }
@@ -731,7 +913,7 @@ curl -s -w "\nHTTP %{http_code}\n" -X PATCH http://127.0.0.1:8000/employees/E-10
 HTTP 403
 ```
 
-Manoj is now exited, so he can't log in any more, with the same generic message:
+Manoj is now exited, so he can't log in any more, and gets the same generic message:
 
 ```bash
 curl -s -w "\nHTTP %{http_code}\n" -X POST http://127.0.0.1:8000/auth/token \
@@ -745,70 +927,32 @@ curl -s -w "\nHTTP %{http_code}\n" -X POST http://127.0.0.1:8000/auth/token \
 HTTP 401
 ```
 
-### Tampered and readable tokens
+!!! note "Running the lesson twice"
+    These commands change the database: request 4 is now approved and Manoj has exited. Run them again and you'll get a 409 and a failed login. Reload `acmehr.sql` and run `python -m app.seed` to start fresh.
 
-A token with one character changed in the signature is rejected:
-
-```bash
-login() { curl -s -X POST http://127.0.0.1:8000/auth/token -d "username=$1&password=Acme@2026" | python -c "import json,sys; print(json.load(sys.stdin)['access_token'])"; }
-TOKEN=$(login ananya.rao@acme.example)
-BAD="${TOKEN%?}X"
-
-curl -s -w "\nHTTP %{http_code}\n" -H "Authorization: Bearer $BAD" http://127.0.0.1:8000/auth/me
-```
-
-```{ .text .output }
-{
-  "detail": "Could not validate credentials"
-}
-HTTP 401
-```
-
-But anyone can **read** one:
-
-```bash
-login() { curl -s -X POST http://127.0.0.1:8000/auth/token -d "username=$1&password=Acme@2026" | python -c "import json,sys; print(json.load(sys.stdin)['access_token'])"; }
-TOKEN=$(login ananya.rao@acme.example)
-
-python -c "
-import base64, json, sys
-payload = sys.argv[1].split('.')[1]
-payload += '=' * (-len(payload) % 4)
-claims = json.loads(base64.urlsafe_b64decode(payload))
-print({k: claims[k] for k in ('sub', 'role')}, '| expires in', claims['exp'] - claims['iat'], 'seconds')
-" "$TOKEN"
-```
-
-```{ .text .output }
-{'sub': 'E-1042', 'role': 'employee'} | expires in 1800 seconds
-```
-
-No secret key was needed to **read** it. The key is only needed to **create** or **verify** a token. That's why the payload holds only the employee code and role.
-
-### In /docs
-
-Open `/docs` and click **Authorize** 🔒. Enter `karthik.menon@acme.example` / `Acme@2026` and click Authorize. Swagger UI calls `/auth/token` and sends the token automatically with every request you try. Protected endpoints show a padlock.
+## In Real Projects
 
 !!! realworld "In Real Projects"
-    - Keep access tokens **short-lived** (15–60 minutes) and add **refresh tokens** so people stay logged in.
-    - Rate-limit the login endpoint and lock accounts after repeated failures.
-    - Companies like Acme usually log in through their identity provider (Microsoft Entra ID or Google Workspace, the SSO the BRD lists for a later phase) via OAuth2 / OpenID Connect. Your API then only **verifies** the provider's JWTs, using exactly the `get_current_user` pattern from this lesson, and maps the email to an employee.
-    - HR systems log every access to private data (who viewed whose profile, and when) in the audit log.
+    - **HTTPS only.** Anyone who can see a token can use it until it expires, so tokens must never travel over plain HTTP.
+    - **Short-lived tokens.** Keep access tokens to 15–60 minutes, and add **refresh tokens** so people stay logged in.
+    - **Where the browser keeps the token.** `localStorage` (as in the frontend module's cart) is simple, but any injected script can read it. Many teams use an `httpOnly` cookie, which JavaScript can't read.
+    - **Protect the login endpoint.** Rate-limit it and lock accounts after repeated failures.
+    - **Single sign-on.** Companies like Acme usually log in through their identity provider (Microsoft Entra ID or Google Workspace, the SSO the BRD lists for a later phase). Your API then only **verifies** the provider's tokens, with the same `get_current_user` pattern, and maps the email to an employee.
+    - **Audit access.** HR systems log every view of private data: who viewed whose profile, and when.
 
 ## Common Mistakes
 
 | Mistake | Risk / Symptom | Fix |
 |---------|----------------|-----|
-| Storing plain-text passwords | Every account exposed in a leak | `bcrypt.hashpw` + `checkpw` |
+| Storing plain-text passwords | Every account exposed in a leak | `bcrypt.hashpw` to store, `bcrypt.checkpw` to check |
 | Comparing hashes with `==` | Always `False` (random salt) | `bcrypt.checkpw(plain, hashed)` |
 | Hashing a password over 72 bytes | bcrypt raises `ValueError`, and the user sees a 500 | Limit new passwords to 72 bytes (`len(pw.encode())`, not `len(pw)`) |
-| Hard-coded `SECRET_KEY` in code | Anyone with the repo can forge tokens | Load it from the environment; make it long and random |
-| No `exp` claim | Stolen tokens work forever | Always set an expiry |
-| Trusting the token's `role` for decisions | A demoted or exited employee keeps their powers until expiry | Load the employee and check the database |
-| Taking the acting user from the request body | Anyone can act as anyone (`"approver_code": ...`) | Take it from the token: `user: CurrentUser` |
-| Sending JSON to `/auth/token` | `422` "Field required: username" | Use form data: `-d "username=...&password=..."` |
-| 403 for "not logged in" | Confusing for clients | 401 = not authenticated, 403 = not allowed |
-| Only role checks | Any manager can approve any team's leave | Add relationship checks (is this *their* report?) |
+| Secret key written in the code | Anyone with the repo can make tokens | Load it from `.env`; make it long and random |
+| No `exp` claim | A stolen token works forever | Always set an expiry |
+| Trusting the token's `role` | A demoted or exited employee keeps their powers until expiry | Load the employee and check the database |
+| Taking the acting user from the request | Anyone can act as anyone | Take it from the token: `user: CurrentUser` |
+| Sending JSON to `/auth/token` | `422` "Field required: username" | Send form data: `-d "username=...&password=..."` |
+| Only role checks | Any manager can approve any team's leave | Add relationship checks: is this *their* report? |
 
 ## Practice Exercises
 
@@ -896,10 +1040,10 @@ Open `/docs` and click **Authorize** 🔒. Enter `karthik.menon@acme.example` / 
     Authentication verifies identity (who you are), for example by logging in and receiving a token; failure returns 401. Authorisation checks permissions (what you may do), such as approving only your own team's leave; failure returns 403.
 
 !!! interview "2. What is a JWT and what are its parts?"
-    A compact, URL-safe token with three Base64URL parts: a header (algorithm, type), a payload (claims such as `sub`, `role`, `exp`, `iat`) and a signature (HMAC or RSA over header and payload). The signature proves integrity and authenticity; the payload is readable by anyone, not encrypted.
+    A compact, URL-safe token with three Base64URL parts: a header (algorithm, type), a payload (claims such as `sub`, `role`, `exp`, `iat`) and a signature (HMAC or RSA over header and payload). The signature proves the token wasn't changed and was made by someone with the key; the payload is readable by anyone, not encrypted.
 
 !!! interview "3. Why use bcrypt instead of SHA-256 for passwords?"
-    bcrypt is deliberately slow and has a tunable cost factor, plus a random salt per password, which makes brute-force and rainbow-table attacks impractical. SHA-256 is designed to be fast, so attackers can try billions of guesses per second.
+    bcrypt is deliberately slow and has a tunable cost factor, plus a random salt per password, which makes brute-force and precomputed-table attacks impractical. SHA-256 is designed to be fast, so attackers can try billions of guesses per second.
 
 !!! interview "4. What's the difference between role-based and relationship-based authorisation?"
     Role-based checks depend only on who the user is ("HR admins can change status"), so they fit in a reusable dependency like `require_role("hr_admin")`. Relationship-based checks depend on the data being accessed ("only this employee's manager can approve this request"), so they compare the user with the resource inside the endpoint or service. Most business systems need both.
@@ -912,18 +1056,16 @@ Open `/docs` and click **Authorize** 🔒. Enter `karthik.menon@acme.example` / 
 
 ## Summary
 
-| Concept | Code |
-|---------|------|
+| Step | Code |
+|------|------|
 | Install | `pip install bcrypt PyJWT` |
-| Hash / verify | `bcrypt.hashpw(pw, bcrypt.gensalt())` · `bcrypt.checkpw(pw, hashed)` |
-| Accounts table | `UserAccount` model + `Base.metadata.create_all(engine, tables=[...])` |
-| Create token | `jwt.encode({"sub": code, "role": role, "exp": ...}, SECRET_KEY, algorithm="HS256")` |
-| Verify token | `jwt.decode(token, SECRET_KEY, algorithms=["HS256"])` |
-| Read the header | `OAuth2PasswordBearer(tokenUrl="/auth/token")` |
-| Login form | `OAuth2PasswordRequestForm` (form data: `username`, `password`) |
-| Protect | `user: Annotated[Employee, Depends(get_current_user)]` → 401 |
-| Roles | `Depends(require_role("hr_admin"))` → 403 |
-| Relationships | `request.employee.manager_id == user.id` → else 403 |
+| 1. Hash / check a password | `bcrypt.hashpw(pw, bcrypt.gensalt())` · `bcrypt.checkpw(pw, hashed)` |
+| 2. Make / read a token | `jwt.encode({"sub": code, "role": role, "exp": ...}, SECRET_KEY, algorithm="HS256")` · `jwt.decode(token, SECRET_KEY, algorithms=["HS256"])` |
+| 3. Accounts table | `UserAccount` model + `Base.metadata.create_all(engine, tables=[...])` |
+| 4. Login | `OAuth2PasswordRequestForm` (form data: `username`, `password`) → `{"access_token": ...}` |
+| 5. Protect | `OAuth2PasswordBearer(tokenUrl="/auth/token")` + `user: CurrentUser` → 401 |
+| 6a. Roles | `Depends(require_role("hr_admin"))` → 403 |
+| 6b. Relationships | `request.employee.manager_id == user.id`, else 403 |
 | Use a token | `Authorization: Bearer <token>` |
 
 **Next lesson:** [Testing FastAPI](11-testing-fastapi.md), with automated tests for the leave rules and these permissions using pytest and TestClient.
