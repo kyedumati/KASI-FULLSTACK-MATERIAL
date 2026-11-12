@@ -48,6 +48,9 @@ theme:
     - toc.integrate
 
 extra:
+  analytics:
+    provider: google
+    property: G-4WHFYW4CLF
   social:
     - icon: material/email-outline
       link: mailto:support@datavizon.com
