@@ -266,17 +266,19 @@ print(prices)
 Sort strings ignoring case, or by length, with `key`:
 
 ```python
-names = ["ravi", "Asha", "kiran", "Bala"]
+names = ["ravi", "Asha", "Kiran", "bala"]
 print(sorted(names))
 print(sorted(names, key=str.lower))
 print(sorted(names, key=len))
 ```
 
 ```{ .text .output }
-['Asha', 'Bala', 'kiran', 'ravi']
-['Asha', 'Bala', 'kiran', 'ravi']
-['ravi', 'Asha', 'Bala', 'kiran']
+['Asha', 'Kiran', 'bala', 'ravi']
+['Asha', 'bala', 'Kiran', 'ravi']
+['ravi', 'Asha', 'bala', 'Kiran']
 ```
+
+Plain `sorted()` puts every capital letter before every small letter, so `Kiran` comes before `bala`. `key=str.lower` compares the names as if they were all lower case.
 
 Useful built-ins: `len()`, `sum()`, `min()`, `max()`.
 
@@ -432,6 +434,46 @@ Kiran: total 186
 
 Nested lists are how you represent tables, grids and matrices.
 
+### Shallow copy vs deep copy
+
+`copy()` makes a new outer list, but the inner lists are still shared. This is called a **shallow copy**:
+
+```python
+students = [["Asha", 85], ["Ravi", 72]]
+shallow = students.copy()
+
+shallow[0][1] = 100          # changes the inner list both names share
+shallow.append(["Kiran", 91])   # changes only the new outer list
+
+print(students)
+print(shallow)
+```
+
+```{ .text .output }
+[['Asha', 100], ['Ravi', 72]]
+[['Asha', 100], ['Ravi', 72], ['Kiran', 91]]
+```
+
+Asha's mark changed in the original too. For a fully independent copy of a nested list, use `copy.deepcopy()`, which copies every level:
+
+```python
+import copy
+
+students = [["Asha", 85], ["Ravi", 72]]
+deep = copy.deepcopy(students)
+
+deep[0][1] = 100
+print(students)
+print(deep)
+```
+
+```{ .text .output }
+[['Asha', 85], ['Ravi', 72]]
+[['Asha', 100], ['Ravi', 72]]
+```
+
+For a flat list of numbers or strings, `copy()` is enough.
+
 ## Common Mistakes
 
 | Mistake | Error / Result | Fix |
@@ -491,8 +533,13 @@ Nested lists are how you represent tables, grids and matrices.
 
     # 5
     marks = [45, 78, 32, 90, 66, 55]
-    passed = [m for m in marks if m >= 50]
-    failed = [m for m in marks if m < 50]
+    passed = []
+    failed = []
+    for m in marks:
+        if m >= 50:
+            passed.append(m)
+        else:
+            failed.append(m)
     print(passed, failed)                      # [78, 90, 66, 55] [45, 32]
 
     # 6
@@ -564,6 +611,6 @@ Nested lists are how you represent tables, grids and matrices.
 | Sort | `lst.sort()` (in place), `sorted(lst)` (new list), `reverse=True`, `key=` |
 | Aggregate | `len()`, `sum()`, `min()`, `max()` |
 | Loop | `for x in lst`, `enumerate()`, `zip()` |
-| Copy | `lst.copy()` or `lst[:]`, never `b = a` |
+| Copy | `lst.copy()` or `lst[:]`, never `b = a`; `copy.deepcopy(lst)` for nested lists |
 
 **Next lesson:** [Tuples in Python](10-tuples.md), lists that can't be changed.

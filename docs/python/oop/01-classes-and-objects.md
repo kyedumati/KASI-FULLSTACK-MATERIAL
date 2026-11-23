@@ -2,7 +2,7 @@
 lesson: true
 category: OOP & Advanced Python
 short: Classes
-description: Object-oriented programming in Python: classes, objects, __init__, self, instance and class attributes, methods, __str__ and encapsulation.
+description: "Object-oriented programming in Python: classes, objects, __init__, self, instance and class attributes, methods, __str__ and encapsulation."
 ---
 
 # Classes & Objects

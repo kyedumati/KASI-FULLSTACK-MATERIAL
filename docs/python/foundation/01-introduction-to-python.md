@@ -64,7 +64,7 @@ Compare the same program in Java and Python:
 === "Python"
 
     ```python
-    print("Welcome to Kasi Yedumati · Full Stack Training")
+    print("Welcome to Kasi Yedumati · Full Stack Material")
     ```
 
 === "Java"
@@ -72,7 +72,7 @@ Compare the same program in Java and Python:
     ```java
     public class Main {
         public static void main(String[] args) {
-            System.out.println("Welcome to Kasi Yedumati · Full Stack Training");
+            System.out.println("Welcome to Kasi Yedumati · Full Stack Material");
         }
     }
     ```
@@ -164,7 +164,8 @@ print("I am learning Python with Kasi Yedumati")
 **Step 5.** Run it. Either click the **▶ Run** button at the top right of VS Code, or open the terminal (**View → Terminal**) and type:
 
 ```bash
-python hello.py
+python hello.py      # Windows
+python3 hello.py     # macOS
 ```
 
 ```{ .text .output }
@@ -216,10 +217,12 @@ flowchart LR
 3. It converts the code into **bytecode**, a simpler form.
 4. The **Python Virtual Machine (PVM)** runs the bytecode line by line and shows the output.
 
-This is why Python is called an **interpreted language**: you run the `.py` file directly, without a separate "compile" step like in Java or C.
+This is why Python is called an **interpreted language**: you run the `.py` file directly. There is no separate "compile" command for you to run first, as there is in C or Java.
 
 !!! tip "Interpreted vs compiled, in one line"
-    **Compiled** (C, Java): translate the whole book first, then read it. **Interpreted** (Python): a translator reads it to you line by line.
+    **Compiled** (C): translate the whole book into machine code first, then read it. **Interpreted** (Python): a translator reads it to you as you go.
+
+    Java sits in between. You compile it to bytecode yourself with `javac`, and the Java Virtual Machine then runs that bytecode. Python does the same two steps, but does the first one for you automatically.
 
 ## Python Interactive Shell (REPL)
 
@@ -267,6 +270,8 @@ Write comments to explain **why** you did something, not **what** the code obvio
 ### Indentation
 
 **Indentation** means the spaces at the start of a line. In most languages it's only for looks. **In Python, indentation is part of the grammar.** It shows which lines belong together.
+
+The example below uses a variable (`marks`) and an `if` statement. Both get their own lessons later; for now, look only at the spaces at the start of each line.
 
 ```python
 marks = 75

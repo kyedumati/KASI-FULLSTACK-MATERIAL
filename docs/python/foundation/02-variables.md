@@ -22,10 +22,10 @@ description: How to store, name, update and reuse data in Python using variables
 
 A **variable** is a name that stores a value so you can use it later.
 
-!!! example "Real-life analogy: labelled boxes"
-    Imagine boxes in a storeroom. Each box has a **label** (`marks`, `name`, `city`) and something **inside** it (`85`, `"Ravi"`, `"Hyderabad"`). When you need the value, you don't search every box. You read the label.
+!!! example "Real-life analogy: name tags"
+    Think of sticky name tags. You write a name on a tag (`marks`, `name`, `city`) and stick it on a value (`85`, `"Ravi"`, `"Hyderabad"`). When you need the value, you don't search for it. You ask for it by the name on the tag.
 
-    A variable is the label. The value is what's in the box.
+    A variable is the tag. The value is the thing the tag is stuck on.
 
 Without variables, you would have to repeat the same value everywhere:
 
@@ -103,14 +103,14 @@ After withdrawal: 1300
 
 `balance = balance + 500` means: take the current value of `balance`, add 500, and store the result back in `balance`.
 
-Python has shortcuts for this, called **compound assignment**:
+Python has a shortcut for this, called **compound assignment**:
 
 | Long form | Short form |
 |-----------|------------|
 | `x = x + 5` | `x += 5` |
 | `x = x - 5` | `x -= 5` |
-| `x = x * 5` | `x *= 5` |
-| `x = x / 5` | `x /= 5` |
+
+The same shortcut exists for every arithmetic operator. You'll see the full set in [Operators in Python](04-operators.md).
 
 ```python
 likes = 10
@@ -240,7 +240,7 @@ b = 10
 
 ## How Variables Work Behind the Scenes
 
-In Python, a variable is a **label attached to an object in memory**. It is not a box that holds the value itself.
+This is the name-tag picture from the start of the lesson, made precise. In Python, a variable is a **label attached to an object in memory**. It is not a box that holds the value itself.
 
 ```python
 a = 50

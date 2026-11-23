@@ -307,7 +307,12 @@ TypeError: 'str' object does not support item assignment
 ```
 
 !!! tip "Why this matters"
-    Immutable values are safe to share: nobody can change them behind your back. Only immutable values can be dictionary keys or set items. This question also comes up in almost every Python interview.
+    Immutable values are safe to share: nobody can change them behind your back. This question also comes up in almost every Python interview.
+
+!!! info "A word you will meet later: hashable"
+    Python can turn a value that never changes into a fixed number, called its **hash**, and use that number to find the value quickly. A value that has a hash is called **hashable**. Immutable values such as `int`, `str` and a tuple of immutable items are hashable; `list`, `set` and `dict` are not.
+
+    Only hashable values can be **dictionary keys** or **set items**. You'll use this rule in the Tuples, Sets and Dictionaries lessons.
 
 ## Common Mistakes
 
@@ -403,7 +408,7 @@ TypeError: 'str' object does not support item assignment
     `None` is a special constant of type `NoneType` that represents the absence of a value. It is falsy, but it is not equal to `0`, `False` or `""`. Check for it with `is None`.
 
 !!! interview "5. Why does `0.1 + 0.2` not equal `0.3`?"
-    Floats are stored in binary floating point (IEEE 754), which cannot represent some decimals exactly, so tiny rounding errors appear. Use `round()`, `math.isclose()` or the `decimal` module for exact decimal arithmetic such as money.
+    Computers store floats in binary, and binary cannot represent some decimals (like 0.1) exactly, just as 1/3 cannot be written exactly in decimal. Tiny rounding errors appear. The storage format is a standard called IEEE 754. Use `round()`, `math.isclose()` or the `decimal` module for exact decimal arithmetic such as money.
 
 !!! interview "Scenario: a price read from a form is `\"499\"` and `price * 2` shows `499499`. What happened?"
     Form input arrives as a **string**. `"499" * 2` repeats the string. Convert it first: `int(price)` or `float(price)`. Type conversion is covered in [Input, Output & Type Conversion](05-input-output-type-conversion.md).

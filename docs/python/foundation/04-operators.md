@@ -236,7 +236,7 @@ Without short-circuiting, `items[0]` would crash on an empty list. Because the l
 
 ## Assignment Operators
 
-You met these in [Variables](02-variables.md). They update a variable using its current value.
+You met `+=` and `-=` in [Variables](02-variables.md). Every arithmetic operator has the same shortcut: `x //= 5` means `x = x // 5`.
 
 ```python
 x = 10
@@ -359,7 +359,7 @@ print(-3 ** 2)           # ** before unary minus: -(3 ** 2)
 
 **Challenge**
 
-7. A restaurant bill is 1850. Add 5% GST, then split the total equally among 4 friends. Print each person's share rounded to 2 decimals. If each friend pays only whole rupees (use `//`), how much of the bill is left unpaid?
+7. A restaurant bill is 1900. Add 5% GST, then split the total equally among 4 friends. Print each person's share rounded to 2 decimals. If each friend pays only whole rupees (use `//`), how much of the bill is left unpaid?
 
 ??? success "Solutions (click to expand)"
 
@@ -370,7 +370,7 @@ print(-3 ** 2)           # ** before unary minus: -(3 ** 2)
     # 29 21 100 6.25 6 1 390625
 
     # 2
-    print("Even" if 1234 % 2 == 0 else "Odd")   # Even
+    print(1234 % 2 == 0)                        # True, so 1234 is even
 
     # 3
     age = 17
@@ -396,12 +396,12 @@ print(-3 ** 2)           # ** before unary minus: -(3 ** 2)
     print((age >= 18 or has_parent_permission) and ticket_booked)   # True
 
     # 7
-    bill = 1850
-    total = bill + bill * 5 / 100          # 1942.5
+    bill = 1900
+    total = bill + bill * 5 / 100          # 1995.0
     share = total / 4
-    print("Each pays:", round(share, 2))   # Each pays: 485.62
-    whole = total // 4                     # 485.0 rupees each, paid in whole rupees
-    print("Left over:", total - whole * 4) # Left over: 2.5
+    print("Each pays:", round(share, 2))   # Each pays: 498.75
+    whole = total // 4                     # 498.0 rupees each, paid in whole rupees
+    print("Left over:", total - whole * 4) # Left over: 3.0
     ```
 
 !!! note "Mini Assignment"
@@ -422,7 +422,7 @@ print(-3 ** 2)           # ** before unary minus: -(3 ** 2)
     No. Use `x += 1` and `x -= 1`. `++x` is valid syntax but just means `+(+x)`, which doesn't change `x`.
 
 !!! interview "5. What does `2 ** 3 ** 2` return and why?"
-    `512`. The exponent operator is **right-associative**, so it is evaluated as `2 ** (3 ** 2) = 2 ** 9`.
+    `512`. The exponent operator works from right to left (it is **right-associative**), so it is evaluated as `2 ** (3 ** 2) = 2 ** 9`.
 
 !!! interview "Scenario: how would you check if a year is a leap year using operators?"
     `(year % 4 == 0 and year % 100 != 0) or year % 400 == 0`. Divisible by 4 but not by 100, unless also divisible by 400.

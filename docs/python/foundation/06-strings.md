@@ -333,7 +333,7 @@ True
 | `word[10]` on a short string | `IndexError: string index out of range` | Check `len()` or use slicing (slicing never errors) |
 | `s[0] = "X"` | `TypeError: 'str' object does not support item assignment` | Build a new string |
 | `"Age: " + 25` | `TypeError` | `f"Age: {25}"` |
-| `",".join([1, 2, 3])` | `TypeError: sequence item 0: expected str instance, int found` | Convert items first: `",".join(str(n) for n in nums)` |
+| `",".join([1, 2, 3])` | `TypeError: sequence item 0: expected str instance, int found` | `join()` needs strings: `",".join(["1", "2", "3"])` |
 | Comparing `"Python" == "python"` | `False` | Normalise case: `a.lower() == b.lower()` |
 
 ## Practice Exercises
@@ -346,13 +346,13 @@ True
 
 **Medium**
 
-4. Ask the user for their full name and print their initials, e.g. `Ravi Kumar` → `R.K.`
-5. Check whether a word is a **palindrome** (reads the same backwards), ignoring case. Test with `"Madam"` and `"Python"`.
+4. Ask the user for their first and last name in one input and print their initials, e.g. `Ravi Kumar` → `R.K.`
+5. Check whether a word is a **palindrome** (reads the same backwards), ignoring case. Print `True` or `False`. Test with `"Madam"`, then with `"Python"`.
 6. Mask an email: `ravikumar@gmail.com` → `ra*******@gmail.com` (keep the first 2 characters and the domain).
 
 **Challenge**
 
-7. Write a password validator. A password is valid if it has at least 8 characters, contains at least one digit, at least one upper-case letter and no spaces. Print which rules failed.
+7. **Password check:** ask for a password and print `True` or `False` for each rule: it has at least 8 characters, it has no spaces, it is not made of digits only, and it has at least one upper-case letter. (Hint for the last rule: compare the password with its `lower()` version.)
 
 ??? success "Solutions (click to expand)"
 
@@ -370,13 +370,15 @@ True
 
     # 4
     full = input("Full name: ")
-    parts = full.split()
-    print(".".join(p[0].upper() for p in parts) + ".")
+    parts = full.split()                  # ['Ravi', 'Kumar']
+    first = parts[0]
+    last = parts[-1]
+    print(f"{first[0].upper()}.{last[0].upper()}.")   # R.K.
 
     # 5
-    for word in ["Madam", "Python"]:
-        w = word.lower()
-        print(word, w == w[::-1])         # Madam True / Python False
+    word = "Madam"
+    w = word.lower()
+    print(w == w[::-1])                   # True  (change word to "Python" and it prints False)
 
     # 6
     email = "ravikumar@gmail.com"
@@ -386,17 +388,13 @@ True
 
     # 7
     pwd = input("Password: ")
-    if len(pwd) < 8:
-        print("Must be at least 8 characters")
-    if not any(ch.isdigit() for ch in pwd):
-        print("Must contain a digit")
-    if not any(ch.isupper() for ch in pwd):
-        print("Must contain an upper-case letter")
-    if " " in pwd:
-        print("Must not contain spaces")
+    print(f"At least 8 characters : {len(pwd) >= 8}")
+    print(f"No spaces             : {' ' not in pwd}")
+    print(f"Not only digits       : {not pwd.isdigit()}")
+    print(f"Has an upper-case     : {pwd != pwd.lower()}")
     ```
 
-    `any()` returns `True` if at least one item is true. You'll use it more after the Loops lesson.
+    You'll turn this into a full validator that prints which rules failed in the [Loops](08-loops.md) lesson.
 
 !!! note "Mini Assignment"
     Write `username.py`: ask for a first name, last name and birth year, then generate a username in the format `firstname.lastname` + last 2 digits of the year, all lowercase, with spaces removed. Example: `Ravi`, `Kumar`, `2001` → `ravi.kumar01`. Also print how many characters it has.

@@ -68,14 +68,14 @@ On each round (called an **iteration**), the variable `skill` holds the next ite
 Strings are sequences too:
 
 ```python
-for letter in "KSR":
+for letter in "SQL":
     print(letter)
 ```
 
 ```{ .text .output }
-K
 S
-R
+Q
+L
 ```
 
 ## The range() Function
@@ -397,6 +397,7 @@ Sum of digits: 22
 **Challenge**
 
 7. **Number guessing game:** the secret number is `37`. Let the user guess up to 5 times. After each wrong guess, say "Too high" or "Too low". If they guess correctly, congratulate them and stop. If all 5 attempts are used, reveal the number (use loop `else`).
+8. **Password validator:** finish the password check from the [Strings](06-strings.md) lesson. A password is valid if it has at least 8 characters, at least one digit, at least one upper-case letter and no spaces. Print every rule that failed, or `Password accepted` if none did.
 
 ??? success "Solutions (click to expand)"
 
@@ -451,10 +452,49 @@ Sum of digits: 22
             print("Too low")
     else:
         print(f"Out of attempts. The number was {SECRET}.")
+
+    # 8
+    pwd = input("Password: ")
+    has_digit = False
+    has_upper = False
+    for ch in pwd:
+        if ch.isdigit():
+            has_digit = True
+        if ch.isupper():
+            has_upper = True
+
+    valid = True
+    if len(pwd) < 8:
+        print("Must be at least 8 characters")
+        valid = False
+    if not has_digit:
+        print("Must contain a digit")
+        valid = False
+    if not has_upper:
+        print("Must contain an upper-case letter")
+        valid = False
+    if " " in pwd:
+        print("Must not contain spaces")
+        valid = False
+    if valid:
+        print("Password accepted")
     ```
 
 !!! note "Mini Assignment"
     Build `expense_tracker.py`: use a `while True` loop that keeps asking for an expense amount. When the user types `done`, stop and print the number of expenses, the total, the average and the highest expense. Ignore invalid entries using `continue` (hint: `value.isdigit()`).
+
+!!! note "Checkpoint Project: halfway through the module"
+    You now know variables, data types, operators, input and output, strings, conditions and loops. Before moving on to collections, combine them in one program.
+
+    Build `quiz.py`, a five-question quiz:
+
+    - Ask the player's name and greet them.
+    - Ask five questions, one at a time. Accept answers in any letter case and ignore extra spaces.
+    - Give two attempts per question; tell the player whether each answer is right or wrong.
+    - Keep the score, and at the end print the score, the percentage to one decimal place and a grade from an `if-elif-else` chain.
+    - Ask `Play again? (yes/no)` and repeat the whole quiz until the player says no.
+
+    If any part feels hard, go back to that lesson before starting [Lists](09-lists.md).
 
 ## Interview Questions
 

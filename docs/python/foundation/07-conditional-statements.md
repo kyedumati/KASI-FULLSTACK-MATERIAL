@@ -15,6 +15,7 @@ description: Making decisions in Python with if, elif, else, nested conditions, 
     - Write nested conditions and know when to avoid them
     - Use the one-line conditional (ternary) expression
     - Use `match-case` for multiple fixed options
+    - Use `pass` as a placeholder for an empty block
 
 **Prerequisites:** [Operators in Python](04-operators.md) and [Input, Output & Type Conversion](05-input-output-type-conversion.md)
 
@@ -297,6 +298,27 @@ match day:
 Weekend
 ```
 
+## Empty Blocks with pass
+
+A block can't be empty in Python. When the grammar needs a statement but you have nothing to write yet, use `pass`. It does nothing.
+
+```python
+age = 20
+
+if age >= 18:
+    pass        # TODO: add the voting logic later
+else:
+    print("Too young to vote")
+
+print("Done")
+```
+
+```{ .text .output }
+Done
+```
+
+Without `pass`, the empty `if` block would raise an `IndentationError`. You'll use `pass` the same way in loops and functions.
+
 ## Common Mistakes
 
 | Mistake | Error / Result | Fix |
@@ -328,7 +350,7 @@ Weekend
 
 **Challenge**
 
-7. **ATM simulation:** the stored PIN is `4321` and the balance is ₹10,000. Ask for the PIN; if it's wrong, print an error. If it's correct, ask for the withdrawal amount and check: it must be a multiple of 100, must not exceed the balance, and must not exceed the daily limit of ₹20,000. Print the result and the remaining balance.
+7. **ATM simulation:** the stored PIN is `4321` and the balance is ₹50,000. Ask for the PIN; if it's wrong, print an error. If it's correct, ask for the withdrawal amount and check: it must be a multiple of 100, must not exceed the balance, and must not exceed the daily limit of ₹20,000. Print the result and the remaining balance.
 
 ??? success "Solutions (click to expand)"
 
@@ -355,7 +377,9 @@ Weekend
     print(a if a > b else b)
 
     # 4
-    x, y, z = (float(input(f"Side {i}: ")) for i in (1, 2, 3))
+    x = float(input("Side 1: "))
+    y = float(input("Side 2: "))
+    z = float(input("Side 3: "))
     if x == y == z:
         print("Equilateral")
     elif x == y or y == z or x == z:
@@ -386,7 +410,7 @@ Weekend
 
     # 7
     PIN = 4321
-    balance = 10000
+    balance = 50000
     DAILY_LIMIT = 20000
 
     pin = int(input("Enter PIN: "))
@@ -417,7 +441,7 @@ Weekend
     A conditional expression that picks one of two values in a single line: `x if condition else y`. Example: `status = "Adult" if age >= 18 else "Minor"`.
 
 !!! interview "3. Does Python have a switch statement?"
-    Not a classic `switch`, but Python 3.10 introduced **structural pattern matching** with `match-case`, which covers switch-like use and more (matching on types, sequences and dict shapes). `case _` acts as the default.
+    Not a classic `switch`, but Python 3.10 introduced `match-case`, which does the same job: compare one value against several fixed options. `case _` acts as the default. Its official name is **structural pattern matching**, because it can also match on the shape of data, such as the items in a list.
 
 !!! interview "4. What values are considered False in a condition?"
     `False`, `None`, `0`, `0.0`, empty string `""`, and empty collections `[]`, `()`, `{}`, `set()`. Everything else is truthy.
@@ -440,5 +464,6 @@ Weekend
 | Nested | `if` inside `if`; keep it shallow |
 | Ternary | `a if cond else b` |
 | match-case | `match x:` / `case "v":` / `case _:` (Python 3.10+) |
+| pass | placeholder for an empty block; does nothing |
 
 **Next lesson:** [Loops in Python](08-loops.md), repeating work with `for` and `while`.

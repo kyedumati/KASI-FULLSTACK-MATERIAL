@@ -98,8 +98,8 @@ This is the most common everyday use of sets.
 
 ```python
 emails = [
-    "ravi@ksr.com", "asha@ksr.com", "ravi@ksr.com",
-    "kiran@ksr.com", "asha@ksr.com",
+    "ravi@example.com", "asha@example.com", "ravi@example.com",
+    "kiran@example.com", "asha@example.com",
 ]
 
 unique_emails = set(emails)
@@ -109,7 +109,7 @@ print(sorted(unique_emails))
 
 ```{ .text .output }
 5 → 3
-['asha@ksr.com', 'kiran@ksr.com', 'ravi@ksr.com']
+['asha@example.com', 'kiran@example.com', 'ravi@example.com']
 ```
 
 To remove duplicates **and keep the original order**, use `dict.fromkeys()`:
@@ -227,7 +227,7 @@ True
     - **Job portals** match candidates with `required_skills <= candidate_skills` (subset).
     - **Social apps** find "mutual friends" with `my_friends & your_friends`.
     - **E-commerce** finds products viewed but not bought with `viewed - purchased`.
-    - **Permissions:** `user_permissions & required_permissions` checks access.
+    - **Permissions:** `required_permissions <= user_permissions` checks that the user has every permission the page needs.
 
 ## Fast Membership Checks
 
@@ -251,7 +251,7 @@ Access denied
 !!! example "Analogy: a book's index"
     Looking for a word in a list is like reading every page of a book. Looking it up in a set is like using the **index at the back**: you go straight to the right page.
 
-### frozenset: an immutable set
+## frozenset: an Immutable Set
 
 ```python
 weekdays = frozenset(["Mon", "Tue", "Wed", "Thu", "Fri"])
@@ -345,7 +345,7 @@ A `frozenset` can't be changed, so it can be used as a dictionary key or inside 
 ## Interview Questions
 
 !!! interview "1. What is a set and how is it different from a list?"
-    A set is an unordered collection of unique, hashable items. Unlike a list, it has no index, removes duplicates automatically, and offers O(1) average-time membership checks thanks to hashing. A list is ordered, indexable and allows duplicates.
+    A set is an unordered collection of unique, hashable items. Unlike a list, it has no index, removes duplicates automatically, and offers very fast membership checks thanks to hashing: the time stays roughly the same however large the set grows (written **O(1)**). A list is ordered, indexable and allows duplicates.
 
 !!! interview "2. How do you create an empty set?"
     `set()`. Writing `{}` creates an empty dictionary.

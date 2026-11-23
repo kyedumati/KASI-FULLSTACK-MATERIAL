@@ -2,7 +2,7 @@
 lesson: true
 category: Python Foundation
 short: Dictionaries
-description: Storing data as key-value pairs: creating, reading, updating and deleting entries, looping, nested dictionaries and real-world JSON-style data.
+description: "Storing data as key-value pairs: creating, reading, updating and deleting entries, looping, nested dictionaries and real-world JSON-style data."
 ---
 
 # Dictionaries in Python
@@ -167,7 +167,7 @@ True
 ```python
 user = {"name": "Kiran", "city": "Pune"}
 
-user["email"] = "kiran@ksr.com"     # add a new key
+user["email"] = "kiran@example.com"     # add a new key
 user["city"] = "Hyderabad"          # update an existing key
 print(user)
 
@@ -176,8 +176,8 @@ print(user)
 ```
 
 ```{ .text .output }
-{'name': 'Kiran', 'city': 'Hyderabad', 'email': 'kiran@ksr.com'}
-{'name': 'Kiran', 'city': 'Chennai', 'email': 'kiran@ksr.com', 'age': 25}
+{'name': 'Kiran', 'city': 'Hyderabad', 'email': 'kiran@example.com'}
+{'name': 'Kiran', 'city': 'Chennai', 'email': 'kiran@example.com', 'age': 25}
 ```
 
 The same syntax `d[key] = value` **adds** if the key is new and **updates** if it exists.
@@ -193,7 +193,7 @@ The same syntax `d[key] = value` **adds** if the key is new and **updates** if i
 | `clear()` | Empties the dictionary |
 
 ```python
-user = {"name": "Kiran", "city": "Chennai", "email": "kiran@ksr.com", "age": 25}
+user = {"name": "Kiran", "city": "Chennai", "email": "kiran@example.com", "age": 25}
 
 email = user.pop("email")
 print("Removed:", email)
@@ -206,7 +206,7 @@ print("Popped:", last, "| Now:", user)
 ```
 
 ```{ .text .output }
-Removed: kiran@ksr.com
+Removed: kiran@example.com
 {'name': 'Kiran', 'city': 'Chennai'}
 Popped: ('city', 'Chennai') | Now: {'name': 'Kiran'}
 ```
@@ -320,7 +320,7 @@ student = {
     "id": 1,
     "name": "Asha",
     "contact": {
-        "email": "asha@ksr.com",
+        "email": "asha@example.com",
         "phone": "9876543210",
     },
     "skills": ["Python", "SQL", "React"],
@@ -336,10 +336,10 @@ print(student)
 ```
 
 ```{ .text .output }
-asha@ksr.com
+asha@example.com
 Python
 3
-{'id': 1, 'name': 'Asha', 'contact': {'email': 'asha@ksr.com', 'phone': '9876543210', 'city': 'Hyderabad'}, 'skills': ['Python', 'SQL', 'React', 'Django']}
+{'id': 1, 'name': 'Asha', 'contact': {'email': 'asha@example.com', 'phone': '9876543210', 'city': 'Hyderabad'}, 'skills': ['Python', 'SQL', 'React', 'Django']}
 ```
 
 ### A list of dictionaries: how most real data looks
@@ -374,23 +374,11 @@ Available: ['Laptop', 'Keyboard']
     - **Config and settings** (database host, port, credentials) are stored as dicts.
     - **Caching:** `cache[user_id] = user_data` gives instant lookups.
 
-```python
-import json
+You'll convert dictionaries to and from JSON text in the [Working with JSON & APIs](../oop/06-working-with-json-and-apis.md) lesson.
 
-order = {"order_id": "ORD101", "items": ["Laptop", "Mouse"], "total": 55799}
-as_json = json.dumps(order)          # dict → JSON text (to send in an API)
-back = json.loads(as_json)           # JSON text → dict (to read an API response)
+## Copying and Merging Dictionaries
 
-print(as_json)
-print(back["items"])
-```
-
-```{ .text .output }
-{"order_id": "ORD101", "items": ["Laptop", "Mouse"], "total": 55799}
-['Laptop', 'Mouse']
-```
-
-### Copying dictionaries
+### Copying
 
 Same trap as lists: `b = a` is not a copy.
 
@@ -409,9 +397,9 @@ print(real_copy)
 {'a': 1}
 ```
 
-For nested dicts, use `copy.deepcopy()`.
+`copy()` is a shallow copy, as with lists: inner dicts and lists are still shared. For nested dicts, use `copy.deepcopy()`.
 
-### Merging dictionaries
+### Merging
 
 ```python
 defaults = {"theme": "light", "language": "en", "notifications": True}
@@ -526,8 +514,34 @@ When both have the same key, the right-hand dict wins.
             print("Invalid choice")
     ```
 
-!!! note "Mini Assignment: module capstone"
-    Build `student_manager.py`, a menu-driven program that stores students as a **dictionary of dictionaries** keyed by roll number: `{101: {"name": "Asha", "marks": {"Maths": 88, "Science": 92}}}`. Support: add a student, add marks for a subject, view one student's report (total, percentage, grade using the grading rules from the Conditions lesson), list all students ranked by percentage, and exit. This uses everything from the Python Foundation module.
+## Module Capstone Project
+
+This project uses everything from the Python Foundation module. Finish it before you start Functions & Modules.
+
+Build `student_manager.py`, a menu-driven program that stores students as a **dictionary of dictionaries** keyed by roll number:
+
+```python
+students = {
+    101: {"name": "Asha", "marks": {"Maths": 88, "Science": 92}},
+}
+```
+
+The menu must support:
+
+1. **Add a student:** ask for a roll number and name; refuse a roll number that already exists.
+2. **Add marks:** ask for a roll number, a subject and marks; refuse an unknown roll number.
+3. **View one report:** print the student's subjects and marks, the total, the percentage and the grade, using the grading rules from the [Conditions](07-conditional-statements.md) lesson.
+4. **List all students:** print every student ranked by percentage, highest first.
+5. **Exit.**
+
+| Part of the program | Lesson it comes from |
+|---------------------|----------------------|
+| Menu that repeats until exit | [Loops](08-loops.md) |
+| Reading and converting input, aligned output | [Input, Output & Type Conversion](05-input-output-type-conversion.md) |
+| Cleaning names and subjects | [Strings](06-strings.md) |
+| Grade from percentage | [Conditional Statements](07-conditional-statements.md) |
+| Ranking students | [Lists](09-lists.md) and [Tuples](10-tuples.md) |
+| Storing students and marks | Dictionaries (this lesson) |
 
 ## Interview Questions
 
