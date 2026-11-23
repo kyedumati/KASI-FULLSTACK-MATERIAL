@@ -269,38 +269,36 @@ Write comments to explain **why** you did something, not **what** the code obvio
 
 ### Indentation
 
-**Indentation** means the spaces at the start of a line. In most languages it's only for looks. **In Python, indentation is part of the grammar.** It shows which lines belong together.
+**Indentation** means the spaces at the start of a line. In most languages it's only for looks. **In Python, indentation is part of the grammar**, so you cannot add spaces at the start of a line wherever you like.
 
-The example below uses a variable (`marks`) and an `if` statement. Both get their own lessons later; for now, look only at the spaces at the start of each line.
+For now, the rule is simple: **start every line at the left edge.**
 
 ```python
-marks = 75
-
-if marks >= 35:
-    print("Pass")          # indented: belongs to the if
-    print("Well done!")    # indented: belongs to the if
-print("Result checked")    # not indented: always runs
+print("Hello")
+print("Welcome to Python")
+print("Let's begin")
 ```
 
 ```{ .text .output }
-Pass
-Well done!
-Result checked
+Hello
+Welcome to Python
+Let's begin
 ```
-
-Use **4 spaces** per level. VS Code inserts them automatically when you press ++tab++.
 
 !!! mistake "Common Mistake: IndentationError"
     ```python
-    if marks >= 35:
-    print("Pass")
+    print("Hello")
+        print("Welcome to Python")
+    print("Let's begin")
     ```
 
     ```{ .text .output }
-    IndentationError: expected an indented block after 'if' statement on line 1
+    IndentationError: unexpected indent
     ```
 
-    **Fix:** indent the line under `if` by 4 spaces.
+    The second line starts with spaces, and Python does not know why. **Fix:** remove the spaces so the line starts at the left edge.
+
+Later, you will indent lines on purpose to group them together. That starts in the [Conditional Statements](07-conditional-statements.md) lesson, where the rule is **4 spaces** per level.
 
 ## Common Mistakes
 
@@ -386,7 +384,7 @@ Use **4 spaces** per level. VS Code inserts them automatically when you press ++
     Python is generally called **interpreted**. Internally, the source code is first compiled to **bytecode** (`.pyc`), which is then executed by the **Python Virtual Machine** line by line. There is no separate compile step for the developer.
 
 !!! interview "3. Why is indentation important in Python?"
-    Python uses indentation to define **blocks of code** (for example, the body of an `if`, a loop or a function), where other languages use curly braces `{}`. Wrong indentation causes an `IndentationError` or changes the program's logic.
+    Python uses indentation to group lines into **blocks of code**, where other languages use curly braces `{}`. Lines that belong together are indented by the same amount. Wrong indentation causes an `IndentationError` or changes the program's logic. You'll write your first blocks in the Conditional Statements lesson.
 
 !!! interview "4. What are the key features of Python?"
     Easy to read and write, interpreted, dynamically typed (no need to declare variable types), free and open source, cross-platform, a large standard library, and a huge ecosystem of third-party packages.
@@ -406,7 +404,7 @@ Use **4 spaces** per level. VS Code inserts them automatically when you press ++
 | Run a file | `python hello.py` (Windows) or `python3 hello.py` (macOS) |
 | `print()` | Displays output; commas add spaces between values |
 | Comments | Start with `#`; Python ignores them |
-| Indentation | 4 spaces; defines code blocks; wrong indentation = error |
+| Indentation | Part of Python's grammar; start every line at the left edge for now |
 | REPL | Interactive mode (`>>>`) for quick experiments |
 | Errors | Read the **last line** first |
 

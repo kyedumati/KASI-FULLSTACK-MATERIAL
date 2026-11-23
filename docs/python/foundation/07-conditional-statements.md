@@ -60,7 +60,7 @@ Have a nice day
 **Syntax rules:**
 
 1. `if`, then a **condition**, then a **colon** `:`
-2. The lines that belong to the `if` are **indented** by 4 spaces. This is the **block**.
+2. The lines that belong to the `if` are **indented** by 4 spaces. This is the **block**. VS Code inserts the 4 spaces when you press ++tab++.
 3. The first line that is **not** indented is outside the `if` and always runs.
 
 Change `temperature` to `30` and only `Have a nice day` prints.
