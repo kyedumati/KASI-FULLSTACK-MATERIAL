@@ -16,7 +16,7 @@ description: Connecting Python to MySQL with mysql-connector-python, running que
     - Explain SQL injection and why you must never build SQL with f-strings
     - Use transactions, handle database errors and organise code in a repository class
 
-**Prerequisites:** [Transactions, Indexes & Users](12-transactions-indexes-users.md), and from the Python track: [Exception Handling](../../python/oop/03-exception-handling.md) and [Virtual Environments & pip](../../python/functions/06-virtual-environments-and-pip.md).
+**Prerequisites:** [Transactions, Indexes & Users](12-transactions-indexes-users.md), and from the Python track: [Exception Handling](../../python/oop/05-exception-handling.md) and [Virtual Environments & pip](../../python/functions/06-virtual-environments-and-pip.md).
 
 !!! info "Java track"
     Java students will do the same things with **JDBC** in the Java module: connections, `PreparedStatement`, transactions. The concepts in this lesson (parameters, injection, transactions, closing connections) are identical, so it's worth reading even if you're on the Java track.

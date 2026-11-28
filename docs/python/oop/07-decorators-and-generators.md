@@ -16,7 +16,10 @@ description: Closures, writing and using decorators, decorators with arguments, 
     - Explain iterators and the iteration protocol
     - Write generators with `yield` and chain them into memory-efficient pipelines
 
-**Prerequisites:** [Lambda, Map & Filter](../functions/03-lambda-map-filter.md) (functions as values) and [Classes & Objects](01-classes-and-objects.md)
+**Prerequisites:** [Lambda, Map & Filter](../functions/03-lambda-map-filter.md) (functions as values), [Classes & Objects](01-classes-and-objects.md) and [Class Members & Encapsulation](02-class-members-and-encapsulation.md)
+
+!!! tip "You've been using decorators since the OOP lessons"
+    `@classmethod`, `@staticmethod`, `@property`, `@dataclass` and `@abstractmethod` are all decorators. Back then you read the `@` line as "a label that changes how the method behaves". In this lesson you learn what that label really is, and you write your own.
 
 ## Functions Inside Functions and Closures
 
@@ -244,9 +247,44 @@ Go Team KSR!
 | Without arguments | decorator → wrapper | `@timer` |
 | With arguments | factory → decorator → wrapper | `@repeat(times=3)`, `@app.get("/")` |
 
-### Stacking decorators and built-in caching
+### Stacking decorators
 
-Decorators can be stacked; the one **closest** to the function is applied first.
+You can put more than one decorator on a function. The one **closest** to the function is applied first.
+
+```python
+from functools import wraps
+
+def bold(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        return "<b>" + func(*args, **kwargs) + "</b>"
+    return wrapper
+
+def italic(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        return "<i>" + func(*args, **kwargs) + "</i>"
+    return wrapper
+
+@bold
+@italic
+def greet(name):
+    return f"Hello {name}"
+
+print(greet("Asha"))
+```
+
+```{ .text .output }
+<b><i>Hello Asha</i></b>
+```
+
+The stack is shorthand for `greet = bold(italic(greet))`. `italic` wraps the original function first, then `bold` wraps the result, so the bold tags end up on the outside. Swap the two lines and the output becomes `<i><b>Hello Asha</b></i>`.
+
+Order matters in real code too. With `@login_required` above `@timer`, the login check runs first and an anonymous user is never timed.
+
+### Built-in caching with `@cache`
+
+Python ships with useful decorators of its own. `functools.cache` remembers the result of every call:
 
 ```python
 from functools import cache
@@ -291,9 +329,45 @@ StopIteration
 
 A `for` loop does exactly this behind the scenes: it calls `iter()` once, then `next()` repeatedly until it gets `StopIteration`.
 
+### Writing your own iterator class
+
+`iter()` and `next()` are built-ins that call dunder methods, just like `len()` calls `__len__`. Give a class `__iter__` and `__next__`, and its objects work in a `for` loop:
+
+```python
+class Countdown:
+    def __init__(self, start: int) -> None:
+        self.current = start
+
+    def __iter__(self) -> "Countdown":
+        return self                    # this object is its own iterator
+
+    def __next__(self) -> int:
+        if self.current <= 0:
+            raise StopIteration        # tells the for loop to stop
+        value = self.current
+        self.current -= 1
+        return value
+
+for number in Countdown(3):
+    print(number)
+```
+
+```{ .text .output }
+3
+2
+1
+```
+
+| You write | Python calls |
+|-----------|--------------|
+| `iter(obj)`, or the start of a `for` loop | `obj.__iter__()` |
+| `next(it)`, or each step of a `for` loop | `it.__next__()` |
+
+It works, but that's a whole class, with the position stored by hand in `self.current`, just to count down.
+
 ## Generators
 
-Writing iterator classes by hand is tedious. A **generator** is a function that produces values **one at a time** using `yield` instead of `return`.
+A **generator** does the same job with far less code. It's a function that produces values **one at a time** using `yield` instead of `return`, and Python writes `__iter__` and `__next__` for you.
 
 ```python
 def countdown(n):
@@ -310,6 +384,8 @@ for number in countdown(3):
 2
 1
 ```
+
+Four lines instead of a whole `Countdown` class, with the same result. There is no `self.current` to manage, because the generator remembers the value of `n` between steps by itself.
 
 ### How `yield` works
 
@@ -339,8 +415,9 @@ B
 
 | `return` | `yield` |
 |----------|---------|
-| Ends the function, gives back one value | Pauses the function, gives back one value at a time |
-| All results built in memory first | Values produced on demand (lazy) |
+| Ends the function | Pauses the function; it resumes on the next `next()` |
+| Local variables are discarded | Local variables are kept between steps |
+| To hand back many values, you must build the whole list first | Values are produced one at a time, on demand (lazy) |
 
 !!! example "Real-life analogy: a chef vs a buffet"
     A normal function is like cooking **all** the dishes before guests arrive: lots of space and time up front. A generator is like a chef cooking **one plate at a time when someone asks**: nothing is wasted, and the first plate arrives immediately.
@@ -369,6 +446,55 @@ True
 ```
 
 The list holds a million numbers in memory at once. The generator holds almost nothing, yet `sum()` still gets every value.
+
+### Generator expressions
+
+You know list comprehensions from [List Comprehensions](../functions/04-list-comprehensions.md). Swap the square brackets for round ones and you get a **generator expression**: the same idea, but lazy.
+
+```python
+marks = [85, 92, 78, 66]
+
+squares_list = [m * m for m in marks]      # list comprehension: builds the list now
+squares_gen = (m * m for m in marks)       # generator expression: nothing computed yet
+
+print(squares_list)
+print(squares_gen)
+print(sum(squares_gen))
+print(sum(m for m in marks if m >= 80))    # inside a call, sum()'s own brackets are enough
+```
+
+```{ .text .output }
+[7225, 8464, 6084, 4356]
+<generator object <genexpr> at 0x...>
+26129
+177
+```
+
+Use a generator expression when you only need to loop over the values once, for example inside `sum()`, `max()`, `any()` or a `for` loop. Use a list comprehension when you need to keep the values, index them or loop more than once.
+
+??? question "Checkpoint: predict the output before you expand this"
+    ```python
+    def numbers():
+        print("start")
+        yield 1
+        yield 2
+
+    g = numbers()
+    print("created")
+    print(list(g))
+    print(list(g))
+    ```
+
+    **Answer:**
+
+    ```{ .text .output }
+    created
+    start
+    [1, 2]
+    []
+    ```
+
+    Calling `numbers()` runs none of the body, so `created` prints before `start`. The first `list(g)` consumes every value. A generator is **single use**: the second `list(g)` finds it exhausted and gets nothing. Call `numbers()` again for a fresh one.
 
 ### Infinite generators
 
@@ -602,8 +728,10 @@ Replace the `log` list with `open("server.log")` and this pipeline processes a f
 | `@wraps(func)` | Keeps the original name and docstring |
 | With arguments | Three layers: factory → decorator → wrapper |
 | Built-ins | `@property`, `@classmethod`, `@staticmethod`, `@cache` |
-| Iterator | `iter()` + `next()` until `StopIteration` |
+| Stacking | `@a` above `@b` means `a(b(func))`; the closest one applies first |
+| Iterator | `iter()` + `next()` until `StopIteration`; a class with `__iter__` and `__next__` |
 | Generator | Function with `yield`; lazy, memory-efficient, single use |
+| Generator expression | `(x * x for x in items)`: a lazy comprehension |
 | Pipeline | Chain generators: `messages(only_errors(read_lines(f)))` |
 
-**Next lesson:** [Working with JSON & APIs](06-working-with-json-and-apis.md), talking to real web services from Python.
+**Next lesson:** [Working with JSON & APIs](08-working-with-json-and-apis.md), talking to real web services from Python.

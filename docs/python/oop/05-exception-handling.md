@@ -16,7 +16,10 @@ description: Errors vs exceptions, try/except/else/finally, handling specific ex
     - Raise exceptions with `raise` and create custom exception classes
     - Validate user input in a retry loop
 
-**Prerequisites:** [Classes & Objects](01-classes-and-objects.md) and [Inheritance](02-inheritance-and-polymorphism.md)
+**Prerequisites:** [Classes & Objects](01-classes-and-objects.md) and [Inheritance](03-inheritance.md)
+
+!!! tip "You've already raised exceptions"
+    In [Class Members & Encapsulation](02-class-members-and-encapsulation.md), `BankAccount.withdraw()` used `raise ValueError("Insufficient balance")` and the program stopped. This lesson shows the other half: how the calling code **catches** such an error and carries on.
 
 ## Errors and Exceptions
 
@@ -227,6 +230,60 @@ Closing payment session
 | `else` | No exception occurred | Code that should run only on success |
 | `finally` | Always | Clean-up: close files and database connections, release locks |
 
+### `finally` runs even after `return`
+
+"Always" really means always. Even when the `try` block returns, `finally` runs first:
+
+```python
+def read_setting():
+    try:
+        print("Reading...")
+        return "dark-mode"
+    finally:
+        print("Cleaning up")      # runs before the function actually returns
+
+print(read_setting())
+```
+
+```{ .text .output }
+Reading...
+Cleaning up
+dark-mode
+```
+
+The return value is ready, but Python runs `finally` before handing it back. That's why clean-up code placed in `finally` can never be skipped by an early `return`.
+
+??? question "Checkpoint: predict the output before you expand this"
+    ```python
+    def check(value):
+        try:
+            number = int(value)
+        except ValueError:
+            print("A")
+            return "bad"
+        else:
+            print("B")
+            return "good"
+        finally:
+            print("C")
+
+    print(check("7"))
+    print(check("x"))
+    ```
+
+    **Answer:**
+
+    ```{ .text .output }
+    B
+    C
+    good
+    A
+    C
+    bad
+    ```
+
+    For `"7"` the order is `try` → `else` → `finally`. For `"x"` it is `try` → `except` → `finally`. In both cases `C` prints **before** the returned value, because `finally` runs before the function hands its result back.
+
 !!! realworld "In Real Projects"
     Database code always uses this structure: `try` to run queries, `except` to **roll back** the transaction if anything fails (so a payment isn't half-saved), and `finally` to close the connection. In web frameworks, unhandled exceptions become **500 Internal Server Error** responses, so APIs catch expected errors and return clean messages like `404 Not Found` or `400 Bad Request`.
 
@@ -276,7 +333,9 @@ ValueError: invalid literal for int() with base 10: 'x'
 
 ## Custom Exceptions
 
-For your own application rules, create custom exceptions by inheriting from `Exception`. They make errors self-explanatory and let callers catch exactly what they need.
+So far, `BankAccount` raised `ValueError` for every broken rule. The caller then can't tell "amount was negative" from "not enough balance" without reading the message text.
+
+For your own application rules, create custom exceptions by inheriting from `Exception`. This is the inheritance you learned in [Inheritance](03-inheritance.md): your class **is an** `Exception`, so `raise` and `except` work with it. Custom exceptions make errors self-explanatory and let callers catch exactly what they need.
 
 ```python
 class InsufficientBalanceError(Exception):
@@ -330,6 +389,45 @@ flowchart TD
 ```
 
 Exceptions form a hierarchy: `except LookupError` catches both `IndexError` and `KeyError`. Always inherit custom exceptions from `Exception`, not `BaseException`.
+
+### Converting one error into another: `raise ... from`
+
+Low-level errors such as `KeyError` or `ValueError` often mean little to the code that called you. Catch them and raise your own exception instead, using `from e` to keep the original error attached as the **cause**:
+
+```python
+class ConfigError(Exception):
+    """Raised when the app settings are invalid."""
+
+def read_port(settings):
+    try:
+        return int(settings["port"])
+    except KeyError as e:
+        raise ConfigError("Setting 'port' is missing") from e
+    except ValueError as e:
+        raise ConfigError("Setting 'port' must be a number") from e
+
+print(read_port({"port": "8000"}))
+
+try:
+    read_port({"port": "eighty"})
+except ConfigError as e:
+    print("Config problem:", e)
+    print("Caused by:", repr(e.__cause__))      # repr() shows the exception type too
+```
+
+```{ .text .output }
+8000
+Config problem: Setting 'port' must be a number
+Caused by: ValueError("invalid literal for int() with base 10: 'eighty'")
+```
+
+The caller only needs to catch `ConfigError`. Nothing is lost, though: if the error is never caught, the traceback shows both exceptions, joined by the line "The above exception was the direct cause of the following exception".
+
+| Statement | What it does |
+|-----------|--------------|
+| `raise ValueError("...")` | Raise a new exception |
+| `raise` (inside `except`) | Re-raise the same exception unchanged |
+| `raise NewError("...") from e` | Raise a new exception and keep `e` as its cause |
 
 ### Logging instead of printing
 
@@ -512,9 +610,10 @@ ERROR: Division failed while calculating the average
 | `try` / `except` | Run risky code / handle a specific exception |
 | `as e` | Access the exception message |
 | `else` | Runs only if no exception occurred |
-| `finally` | Always runs: clean-up |
+| `finally` | Always runs, even after `return`: clean-up |
 | `raise` | Signal an error: `raise ValueError("...")` |
+| `raise ... from e` | Convert a low-level error into your own, keeping the cause |
 | Custom exception | `class MyError(Exception): pass` |
 | Best practice | Catch specific exceptions, keep `try` small, log errors |
 
-**Next lesson:** [File Handling](04-file-handling.md), reading and writing text, CSV and JSON files.
+**Next lesson:** [File Handling](06-file-handling.md), reading and writing text, CSV and JSON files.

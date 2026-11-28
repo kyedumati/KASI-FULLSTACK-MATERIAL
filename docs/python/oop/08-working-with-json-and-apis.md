@@ -16,7 +16,7 @@ description: How web APIs work, HTTP methods and status codes, JSON in depth, ca
     - Call real REST APIs with the `requests` library: query parameters, headers and JSON bodies
     - Handle timeouts and errors, and keep API keys out of your code
 
-**Prerequisites:** [File Handling](04-file-handling.md), [Exception Handling](03-exception-handling.md) and [Virtual Environments & pip](../functions/06-virtual-environments-and-pip.md)
+**Prerequisites:** [File Handling](06-file-handling.md), [Exception Handling](05-exception-handling.md) and [Virtual Environments & pip](../functions/06-virtual-environments-and-pip.md)
 
 ## What is an API?
 

@@ -36,11 +36,13 @@ Learn Python from your very first line of code to building real applications. To
 -   [OOP & Advanced Python](oop/index.md)
 
     1. [Classes & Objects](oop/01-classes-and-objects.md)
-    1. [Inheritance & Polymorphism](oop/02-inheritance-and-polymorphism.md)
-    1. [Exception Handling](oop/03-exception-handling.md)
-    1. [File Handling](oop/04-file-handling.md)
-    1. [Decorators & Generators](oop/05-decorators-and-generators.md)
-    1. [Working with JSON & APIs](oop/06-working-with-json-and-apis.md)
+    1. [Class Members & Encapsulation](oop/02-class-members-and-encapsulation.md)
+    1. [Inheritance](oop/03-inheritance.md)
+    1. [Polymorphism, Abstraction & Composition](oop/04-polymorphism-abstraction-composition.md)
+    1. [Exception Handling](oop/05-exception-handling.md)
+    1. [File Handling](oop/06-file-handling.md)
+    1. [Decorators & Generators](oop/07-decorators-and-generators.md)
+    1. [Working with JSON & APIs](oop/08-working-with-json-and-apis.md)
 
 -   [FastAPI](fastapi/index.md)
 

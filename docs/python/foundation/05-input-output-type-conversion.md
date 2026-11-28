@@ -89,7 +89,7 @@ Total: 998.0
     ValueError: invalid literal for int() with base 10: 'twenty'
     ```
 
-    `int()` can only convert text that looks like a whole number. You'll learn to handle this gracefully with `try`/`except` in the Exception Handling lesson.
+    `int()` can only convert text that looks like a whole number. For now, type a valid number. You'll see a first way to survive bad input in [Loops](08-loops.md), and the full story in [Exception Handling](../oop/05-exception-handling.md).
 
 ## Type Conversion
 

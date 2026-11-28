@@ -16,7 +16,7 @@ description: What a web API and REST are, why FastAPI, installing it, writing an
     - Write your first endpoints and call them from the browser, `curl` and `/docs`
     - Explain what Uvicorn, ASGI and the OpenAPI docs are
 
-**Prerequisites:** [Working with JSON & APIs](../oop/06-working-with-json-and-apis.md) (you've *called* APIs) and the [MySQL](../../database/index.md) module. Now you'll **build** them.
+**Prerequisites:** [Working with JSON & APIs](../oop/08-working-with-json-and-apis.md) (you've *called* APIs) and the [MySQL](../../database/index.md) module. Now you'll **build** them.
 
 ## What is a Backend API?
 

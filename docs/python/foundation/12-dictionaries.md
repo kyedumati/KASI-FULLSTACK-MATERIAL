@@ -374,7 +374,7 @@ Available: ['Laptop', 'Keyboard']
     - **Config and settings** (database host, port, credentials) are stored as dicts.
     - **Caching:** `cache[user_id] = user_data` gives instant lookups.
 
-You'll convert dictionaries to and from JSON text in the [Working with JSON & APIs](../oop/06-working-with-json-and-apis.md) lesson.
+You'll convert dictionaries to and from JSON text in the [Working with JSON & APIs](../oop/08-working-with-json-and-apis.md) lesson.
 
 ## Copying and Merging Dictionaries
 

@@ -16,7 +16,7 @@ description: Reading and writing text files, file modes, the with statement, wor
     - Read and write CSV and JSON files
     - Handle file errors and work with paths using `pathlib`
 
-**Prerequisites:** [Exception Handling](03-exception-handling.md)
+**Prerequisites:** [Exception Handling](05-exception-handling.md)
 
 ## Why Files?
 
@@ -524,4 +524,4 @@ Config file not found: missing_config.txt. Using defaults.
 | Paths | `Path("dir") / "file.txt"`, `.exists()`, `.read_text()`, `Path(__file__).parent` |
 | Errors | `FileNotFoundError`, `PermissionError`, `json.JSONDecodeError` |
 
-**Next lesson:** [Decorators & Generators](05-decorators-and-generators.md), powerful tools used throughout Python frameworks.
+**Next lesson:** [Decorators & Generators](07-decorators-and-generators.md), powerful tools used throughout Python frameworks.

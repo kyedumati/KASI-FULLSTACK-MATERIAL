@@ -266,6 +266,38 @@ Goodbye!
 !!! realworld "In Real Projects"
     Servers run on a `while True` loop: they wait for a request, handle it, and repeat forever. Retry logic ("try connecting to the database up to 3 times") is a loop with `break` on success.
 
+### Preview: a loop that survives bad input
+
+In [Input, Output & Type Conversion](05-input-output-type-conversion.md) you saw that `int(input(...))` crashes with a `ValueError` when the user types something like `twenty`. Now that you know `while True` and `break`, you can stop that crash:
+
+```python
+while True:
+    text = input("Enter your age: ")
+    try:
+        age = int(text)
+        break                       # conversion worked: leave the loop
+    except ValueError:
+        print("That's not a whole number. Try again.")
+
+print(f"Next year you'll be {age + 1}")
+```
+
+```{ .text .output }
+Enter your age: twenty
+That's not a whole number. Try again.
+Enter your age: 25
+Next year you'll be 26
+```
+
+Read it like this:
+
+- `try:` means "attempt the lines below".
+- If `int(text)` fails, Python **skips the rest of the `try` block** (so `break` does not run) and jumps to `except ValueError:`.
+- The loop then goes round again and asks once more. It only ends when the conversion succeeds and `break` runs.
+
+!!! note "This is only a preview"
+    `try` and `except` have much more to them: other error types, `else`, `finally`, and raising your own errors. All of that comes in [Exception Handling](../oop/05-exception-handling.md). For now, this one pattern is enough to make your input loops crash-proof.
+
 ## Nested Loops
 
 A loop inside a loop. The inner loop runs **completely** for every single round of the outer loop.
@@ -527,6 +559,7 @@ Sum of digits: 22
 | `break` | Exit the loop now |
 | `continue` | Skip to the next iteration |
 | Loop `else` | Runs if no `break` happened |
+| `try` / `except ValueError` in a loop | Ask again instead of crashing on bad input (preview) |
 | Nested loops | Inner loop runs fully for each outer iteration |
 | Built-ins | `sum()`, `max()`, `min()`, `len()` |
 

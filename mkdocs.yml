@@ -143,11 +143,13 @@ nav:
       - OOP & Advanced Python:
           - python/oop/index.md
           - Classes & Objects: python/oop/01-classes-and-objects.md
-          - Inheritance & Polymorphism: python/oop/02-inheritance-and-polymorphism.md
-          - Exception Handling: python/oop/03-exception-handling.md
-          - File Handling: python/oop/04-file-handling.md
-          - Decorators & Generators: python/oop/05-decorators-and-generators.md
-          - Working with JSON & APIs: python/oop/06-working-with-json-and-apis.md
+          - Class Members & Encapsulation: python/oop/02-class-members-and-encapsulation.md
+          - Inheritance: python/oop/03-inheritance.md
+          - "Polymorphism, Abstraction & Composition": python/oop/04-polymorphism-abstraction-composition.md
+          - Exception Handling: python/oop/05-exception-handling.md
+          - File Handling: python/oop/06-file-handling.md
+          - Decorators & Generators: python/oop/07-decorators-and-generators.md
+          - Working with JSON & APIs: python/oop/08-working-with-json-and-apis.md
       - FastAPI:
           - python/fastapi/index.md
           - Introduction to FastAPI: python/fastapi/01-introduction-to-fastapi.md
